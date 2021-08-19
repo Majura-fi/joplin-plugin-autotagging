@@ -17,7 +17,43 @@ export enum SettingKeys {
   debugEnabled = 'debugEnabled',
 }
 
+let setupDialog: string = null;
+
+export async function showSetupDialog() {
+  logger.Info('Opening settings dialog.');
+  await joplin.views.dialogs.setHtml(setupDialog, `
+    <p>You can define multiple tags</p>
+    <label>Tag separator<input type="text" id="tag-separator" value=":"></label>
+    <label>Create missing tags<input type="checkbox" id="create-missing-tags" checked="checked"></label>
+    <table id="table" style="width:340px;">
+      <tr>
+        <th>Target word</th>
+        <th>Tags</th>
+        <th>Partial match</th>
+        <th>Case sensitive</th>
+        <th></th>
+      </tr>
+    </table>
+  `);
+  await joplin.views.dialogs.open(setupDialog);
+}
+
 export async function setupSettings() {
+  logger.Info('Registering command.');
+  await joplin.commands.register({
+    name: 'openSetupDialog',
+    label: 'Open auto tagging setup',
+    execute: async () => showSetupDialog(),
+  });
+
+  logger.Info('Creating settings dialog.');
+  setupDialog = await joplin.views.dialogs.create('setupDialog');
+  await joplin.views.dialogs.addScript(setupDialog, 'setupDialog.js');
+  await joplin.views.dialogs.addScript(setupDialog, 'setupDialog.css');
+
+  logger.Info('Creating menu item.');
+  await joplin.views.menuItems.create('autotagging', 'openSetupDialog', MenuItemLocation.Tools);
+  
   logger.Info('Registering section.');
   await joplin.settings.registerSection('tagging', {
     label: 'Auto Tagging',
