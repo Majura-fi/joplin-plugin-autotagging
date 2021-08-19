@@ -1,5 +1,10 @@
 import joplin from 'api';
-import { SettingItemType } from 'api/types';
+import { ChangeEvent } from 'api/JoplinSettings';
+import { MenuItemLocation, SettingItemType } from 'api/types';
+
+import { LogLevel } from 'simplr-logger';
+
+import { logger } from './logging';
 
 export enum SettingKeys {
   caseSensitiveFullMatch = 'caseSensitiveFullMatch',
@@ -9,9 +14,11 @@ export enum SettingKeys {
   partialMatchWords = 'partialMatchWords',
   tagListSeparator = 'tagListSeparator',
   tagPairSeparator = 'tagPairSeparator',
+  debugEnabled = 'debugEnabled',
 }
 
 export async function setupSettings() {
+  logger.Info('Registering section.');
   await joplin.settings.registerSection('tagging', {
     label: 'Auto Tagging',
     iconName: 'fas fa-tags',
@@ -82,5 +89,16 @@ export async function setupSettings() {
     description: 'Creates missing tags when adding them to notes.'
   };
 
+  logger.Info('Registering settings.');
   await joplin.settings.registerSettings(settings);
+
+  logger.Info('Registering settings.onChange.');
+  await joplin.settings.onChange(async (evt: ChangeEvent) => {
+    if (evt.keys.includes('debug')) {
+      const debugEnabled = await joplin.settings.value(SettingKeys.debugEnabled);
+      const logLevel = debugEnabled ? LogLevel.Trace : LogLevel.None;
+      logger.Info('Debug setting changed to', debugEnabled);
+      logger.UpdateConfiguration(builder => builder.SetDefaultLogLevel(logLevel).Build());
+    }
+  });
 }
