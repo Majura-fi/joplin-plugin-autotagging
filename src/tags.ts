@@ -1,7 +1,8 @@
 import joplin from 'api';
-import { SettingKeys } from './settings';
-import { TagInterface, PaginationResult, WordDictionary, NoteInterface } from './types';
-import { caseSensitiveKey, formRegex, matchAll, parseWordList } from './utils';
+import { Settings, StoredWord } from './interfaces';
+import { logger } from './logging';
+import { collectSettings, SettingKeys } from './settings';
+import { TagInterface, PaginationResult, NoteInterface } from './interfaces';
 
 
 /**
@@ -11,47 +12,24 @@ export async function autoTagCurrentNote() {
   const note: NoteInterface = await joplin.workspace.selectedNote();
   
   if (!note) {
+    logger.Info('No note selected. Cancelling auto tagging.');
     return;
   }
-  
-  const listSeparator = await joplin.settings.value(SettingKeys.tagListSeparator);
-  const pairSeparator = await joplin.settings.value(SettingKeys.tagPairSeparator);
 
-  // Parse word:tag dictionary for full match words.
-  const fullMatchWordsDic: WordDictionary = parseWordList(
-    await joplin.settings.value(SettingKeys.fullMatchWords), 
-    listSeparator, 
-    pairSeparator,
-  );
+  logger.Info('Starting auto-tagging.');
+  const settings = await collectSettings();
+  logger.Info('Settings:', settings);
 
+  logger.Info('Scanning for words.');
   // Use the dictionary to search for keywords and produce tags-list.
-  let tagsToAdd = findTagsToAdd(
-    note.body,
-    fullMatchWordsDic, 
-    await joplin.settings.value(SettingKeys.caseSensitiveFullMatch),
-    true,
-  );
-
-  // Parse word:tag dictionary for partial match words.
-  const partialMatchWordsDic: WordDictionary = parseWordList(
-    await joplin.settings.value(SettingKeys.partialMatchWords), 
-    listSeparator, 
-    pairSeparator,
-  );
-
-  // Use the dictionary to search for keywords and produce tags-list.
-  tagsToAdd = tagsToAdd.concat(findTagsToAdd(
-    note.body,
-    partialMatchWordsDic, 
-    await joplin.settings.value(SettingKeys.caseSensitivePartialMatch),
-    false,
-  ));
+  let tagsToAdd = findTagsToAdd(note.body, settings);
   
   if (!tagsToAdd.length) {
+    logger.Info('No tags to add. Nothing to do.');
     return;
   }
 
-  const createMissingTags = await joplin.settings.value(SettingKeys.createMissingTags);
+  const createMissingTags = await joplin.settings.value(SettingKeys.createMissingTags) as boolean;
   const tagObjs = await getActualTagObjects(tagsToAdd, createMissingTags);
   
   await setTags(note.id, tagObjs);
@@ -67,9 +45,11 @@ export async function getActualTagObjects(tagsArr: string[], createMissingTags: 
   const allTags = await getAllTags();
   const newTags = tagsArr.filter((tag) => !!!allTags.find((atag) => tag === atag.title));
   
-  if (createMissingTags) {
+  if (createMissingTags && newTags.length) {
+    logger.Info(`Creating ${newTags.length} new tags.`);
+
     for (const tag of newTags) {
-      const createdTag = await createTag(tag)
+      const createdTag = await createTag(tag);
       allTags.push(createdTag);
     }
   }
@@ -87,71 +67,49 @@ export async function getActualTagObjects(tagsArr: string[], createMissingTags: 
  * @param fullWord Full word search
  * @returns List of tags
  */
-export function findTagsToAdd(body: string, dictionary: WordDictionary, caseSensitive: boolean, fullWord: boolean): string[] {
+export function findTagsToAdd(body: string, settings: Settings): string[] {
+  logger.Info('Attempting to find tags to add.');
+
   // Do nothing if we don't have populated dictionary.
-  if (!Object.keys(dictionary).length) {
+  if (settings.storedWords.length === 0) {
+    logger.Warn('Cannot search for tags. The dictionary was empty.');
     return [];
   }
-  
-  let regex = formRegex(dictionary, caseSensitive, fullWord);
-  let matchedWords = matchAll(regex, body, caseSensitive);
-  let tagsToAdd = [];
 
-  // Add tags
-  matchedWords.forEach((word) => {
-    word = caseSensitiveKey(dictionary, word, caseSensitive);
-    tagsToAdd = tagsToAdd.concat(dictionary[word]);
-  });
+  logger.Debug({body});
+
+  let tagsToAdd = [];
+  for (let storedWord of settings.storedWords) {
+    tagsToAdd = [...tagsToAdd, ...searchForWord(storedWord, body)];
+  }
   
   // Clear empty and duplicate tags
-  return [...new Set(tagsToAdd.filter((tag) => !!tag))];
+  tagsToAdd = [...new Set(tagsToAdd.filter((tag) => !!tag))];
+
+  logger.Debug(`Found ${tagsToAdd.length} tags to add.`);
+  return tagsToAdd;
 }
 
+function searchForWord (storedWord: StoredWord, body: string): string[] {
+  let re: RegExp;
 
-/**
- * Returns all tags for given note id.
- * 
- * @param noteId Target note id.
- * @returns List of tags.
- */
-export async function getNoteTags(noteId: string): Promise<TagInterface[]> {
-  let allTags = [];
-  let pageNum = 1;
-
-  while (true) {
-    const tagsInfo: PaginationResult<TagInterface> = await joplin.data.get(['notes', noteId, 'tags'], {
-      fields: 'id, title',
-      limit: 20,
-      page: pageNum++,
-    });
-
-    allTags = allTags.concat(tagsInfo.items);
-
-    if (!tagsInfo.has_more) {
-      break;
-    }
+  if (storedWord.word.startsWith('/')) {
+    const lastSlash = storedWord.word.lastIndexOf("/");
+    re = new RegExp(storedWord.word.slice(1, lastSlash), storedWord.word.slice(lastSlash + 1));
+  } else {
+    re = new RegExp(storedWord.word);
   }
 
-  return allTags;
-}
-
-
-/**
- * Checks if tag exists.
- * 
- * @param tag Tag title to search.
- * @returns Returns the tag. Returns null if tag was not found.
- */
-export async function tagExists(tag: string): Promise<TagInterface | null> {
-  const results = await joplin.data.get(['search'], { query: tag, type: 'tag' });
+  logger.Debug(storedWord, re, re.test(body));
   
-  if (results && results.items.length > 0) {
-    return results.items[0];
+  if (re.test(body)) {
+    logger.Debug('Adding tags from', storedWord);
+    return storedWord.tags;
   }
 
-  return null;
+  logger.Debug('Found no tags from', storedWord);
+  return [];
 }
-
 
 /**
  * Creates a new tag.
@@ -160,6 +118,7 @@ export async function tagExists(tag: string): Promise<TagInterface | null> {
  * @returns Returns the created tag.
  */
 export async function createTag(tag: string): Promise<TagInterface> {
+  logger.Info('Creating tag:', tag);
   return await joplin.data.post(['tags'], null, { title: tag });
 }
 
@@ -172,8 +131,11 @@ export async function createTag(tag: string): Promise<TagInterface> {
  * @param tags List of tags to insert.
  */
 export async function setTags(noteId: string, tags: TagInterface[]) {  
+  logger.Info(`Setting ${tags.length} tags to note ${noteId}.`);
+
   for (let tag of tags) {
     await joplin.data.post(['tags', tag.id, 'notes'], null, { id: noteId });
+    logger.Info('Added tag:', tag.title);
   }
 }
 
@@ -184,6 +146,8 @@ export async function setTags(noteId: string, tags: TagInterface[]) {
  * @returns List of tags.
  */
 export async function getAllTags(): Promise<TagInterface[]> {
+  logger.Info('Collecting all tags.');
+
   let allTags = [];
   let page = 1;
   
@@ -201,5 +165,6 @@ export async function getAllTags(): Promise<TagInterface[]> {
     }
   }
 
+  logger.Info(`Collected ${allTags.length} tags.`);
   return allTags;
 }

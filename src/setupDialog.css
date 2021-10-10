@@ -1,0 +1,60 @@
+#joplin-plugin-content {
+  width: 510px;
+  height: 300px;
+  overflow-y: scroll;
+}
+
+.checkbox {
+  margin-left: 0px; 
+  width: 14px; 
+  height: 14px;
+  margin: 3px 3px 3px 4px;
+  font: 400 13.3333px Arial;
+  -webkit-rtl-ordering: logical;
+  -webkit-writing-mode: horizontal-tb !important;
+  writing-mode: horizontal-tb !important;
+  text-rendering: auto;
+  color: -internal-light-dark(black, white);
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  text-indent: 0px;
+  text-shadow: none;
+  display: inline-block;
+  text-align: start;
+}
+
+.block {
+  display: block;
+  margin-bottom: 0.5em;
+}
+
+.label {
+  font-family: Roboto;
+  font-size: 13px;
+  line-height: 1.6em;
+  color: rgb(50, 55, 63);
+  display: inline;
+  font-weight: 500;
+  margin-bottom: 0px;
+  margin-left: 5px;
+  background-color: transparent;
+}
+
+.setting label ~ input[type="text"] {
+  display: block;
+}
+
+.setting {
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+
+.short-input {
+  width: 2em;
+}
+
+.checkbox ~ .label {
+  position: relative;
+  top: -3px;
+}

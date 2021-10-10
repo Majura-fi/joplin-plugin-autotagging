@@ -1,4 +1,5 @@
-import { WordDictionary } from './types';
+import { logger } from './logging';
+import { WordDictionary, WordRowInterface } from './interfaces';
 
 
 /**
@@ -16,11 +17,16 @@ export function formRegex(dictionary: object, caseSensitive: boolean, fullWord: 
   if (!keys.length) {
     throw new Error('Dictionary is empty!');
   }
+
+  logger.Info('Building regex rule with following words:', keys);
   
   const nonWordChar = fullWord ? '[\s\/\\\]\'!"#¤%&()=?@£$€{[}´` ^¨~*:.,<>|€]' : '';  
   const wordsString = keys.map((word) => word.replace('|', '\|')).join('|');
   const reStr = nonWordChar + '(' + wordsString + ')' + nonWordChar + '.*?$';
-  return new RegExp(reStr, caseSensitive ? 'g' : 'gi');
+
+  const re = new RegExp(reStr, caseSensitive ? 'g' : 'gi');
+  logger.Info('Created rule:', re);
+  return re;
 }
 
 
@@ -50,9 +56,9 @@ export function matchAll(
 
   while (match) {
     if (counter-- < 0) {
-      console.error('Infinite loop detected!');
-      console.error('Pattern:', pattern);
-      console.error('Case Sensitive:', caseSensitive);
+      logger.Error('Infinite loop detected!');
+      logger.Error('Pattern:', pattern);
+      logger.Error('Case Sensitive:', caseSensitive);
       throw new Error('Something caused an infinite loop. Please report this issue!');
     }
 
@@ -60,6 +66,7 @@ export function matchAll(
     match = regex.exec(haystack);
   }
 
+  logger.Info('Found following words:', Object.keys(words));
   return Object.keys(words);
 }
 
@@ -88,20 +95,12 @@ export function caseSensitiveKey(object: object, searchKey: string, sensitive: b
  * @param pairSeparator Pair separator.
  * @returns Returns word:tag dictionary.
  */
-export function parseWordList(str: string, listSeparator: string, pairSeparator: string): WordDictionary {  
+export function parseWordList(rows: WordRowInterface[], pairSeparator: string): WordDictionary {  
   const collectedTags = {};
-  (str || '')
-    .split(listSeparator)
-    .forEach((pairStr) => {
-      const tags = pairStr.split(pairSeparator).map((tag) => tag.trim());
-      const word = tags.splice(0, 1)[0];
 
-      if (!!!word || !tags.length) {
-        return;
-      }
-
-      collectedTags[word] = tags;
-    });
+  rows.forEach((row) => {
+    collectedTags[row.word] = row.tags.split(pairSeparator);
+  });
 
   return collectedTags;
 }
