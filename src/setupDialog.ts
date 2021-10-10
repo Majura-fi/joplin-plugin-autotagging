@@ -1,9 +1,28 @@
+import { Settings, StoredWord } from './interfaces';
 import { logger } from './logging';
 
-function init() {
-  const table = document.querySelector('#table');
-  table.append(createNewRow());
-  console.log('Initialized!');
+let rowCount = 0;
+let settings: Settings = JSON.parse(atob((document.getElementById('settings-input') as HTMLInputElement).value));
+init();
+
+async function init() {
+  logger.Info('Initializing settings dialog.');
+  setupUI();
+}
+
+async function setupUI() {
+  (document.getElementById('create-missing-tags') as HTMLInputElement).checked = settings.createMissingTags;
+  (document.getElementById('debug-enabled-cb') as HTMLInputElement).checked = settings.debugEnabled;
+  (document.getElementById('tag-separator') as HTMLInputElement).value = settings.tagPairSeparator;
+  const table = document.getElementById('table');
+  
+  logger.Debug('Generating rows for stored words.');
+  for(const word of settings.storedWords) {
+    table.appendChild(createNewRow(word));
+  }
+  
+  logger.Debug('Generating one empty row.');
+  table.appendChild(createNewRow());
 }
 
 function onInputKeyPress(evt: Event) {
@@ -15,7 +34,7 @@ function onInputKeyPress(evt: Event) {
 
   const isLastChild = !row.nextElementSibling;
   if (!isLastChild) {
-    logger.Info('Cannot make new rows. Event did not come from the last row.');
+    logger.Debug('Cannot make new rows. Event did not come from the last row.');
     return;
   }
 
@@ -23,37 +42,34 @@ function onInputKeyPress(evt: Event) {
 }
 
 function onDelete(evt: Event) {
-  logger.Info('Delete button pressed');
+  logger.Debug('Delete button pressed');
   const row = (evt.target as Element).parentElement.parentElement;
 
   const isLastChild = !row.nextElementSibling;
   if (!isLastChild) {
-    logger.Info('Cannot delete last row.');
+    logger.Debug('Cannot delete last row.');
     row.remove();
   }
 }
 
-function createNewRow(): Element {
-  logger.Info('Creating a new row.');
+function createNewRow(word?: StoredWord): Element {
+  logger.Debug('Creating a new row.');
+  rowCount += 1;
 
   const wordField = document.createElement('input');
   wordField.classList.add('word-field');
+  wordField.name = 'word_' + rowCount;
   wordField.type = 'text';
+  wordField.value = word?.word || '';
   wordField.addEventListener('keypress', (evt) => onInputKeyPress(evt));
 
   const tagsField = document.createElement('input');
   tagsField.classList.add('tags-field');
+  tagsField.name = 'tags_' + rowCount;
   tagsField.type = 'text';
+  tagsField.value = word?.tags.join(settings.tagPairSeparator) || '';
   tagsField.addEventListener('keypress', (evt) => onInputKeyPress(evt));
 
-  const partialMatchCb = document.createElement('input');
-  partialMatchCb.classList.add('match-type-field');
-  partialMatchCb.type = 'checkbox';
-
-  const caseSensitiveCb = document.createElement('input');
-  caseSensitiveCb.classList.add('match-type-field');
-  caseSensitiveCb.type = 'checkbox';
-  
   const trashSpan = document.createElement('span');
   trashSpan.classList.add('fas');
   trashSpan.classList.add('fa-trash-can');
@@ -66,19 +82,15 @@ function createNewRow(): Element {
   const wordCell = document.createElement('td');
   const partialMatchCell = document.createElement('td');
   const caseSensitiveCell = document.createElement('td');
-  const row = document.createElement('tr');
+  const rowEl = document.createElement('tr');
 
   wordCell.append(wordField);
   tagsCell.append(tagsField);
   deleteBtn.append(trashSpan);
-  partialMatchCell.append(partialMatchCb);
-  caseSensitiveCell.append(caseSensitiveCb);
-  row.append(wordCell);
-  row.append(tagsCell);
-  row.append(partialMatchCell);
-  row.append(caseSensitiveCell);
-  row.append(deleteBtn);
-  return row;
+  rowEl.append(wordCell);
+  rowEl.append(tagsCell);
+  rowEl.append(partialMatchCell);
+  rowEl.append(caseSensitiveCell);
+  rowEl.append(deleteBtn);
+  return rowEl;
 }
-
-init();

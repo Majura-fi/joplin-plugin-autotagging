@@ -1,41 +1,106 @@
 import joplin from 'api';
 import { ChangeEvent } from 'api/JoplinSettings';
-import { MenuItemLocation, SettingItemType } from 'api/types';
+import { DialogResult, MenuItemLocation, SettingItem, SettingItemType } from 'api/types';
 
 import { LogLevel } from 'simplr-logger';
+import { Settings, StoredWord } from './interfaces';
 
 import { logger } from './logging';
 
 export enum SettingKeys {
-  caseSensitiveFullMatch = 'caseSensitiveFullMatch',
-  caseSensitivePartialMatch = 'caseSensitivePartialMatch',
   createMissingTags = 'createMissingTags',
-  fullMatchWords = 'fullMatchWords',
-  partialMatchWords = 'partialMatchWords',
-  tagListSeparator = 'tagListSeparator',
   tagPairSeparator = 'tagPairSeparator',
   debugEnabled = 'debugEnabled',
-}
+  storedWords = 'storedWords',
+};
 
 let setupDialog: string = null;
 
+export async function collectSettings(): Promise<Settings> {
+  const res = {
+    createMissingTags: await joplin.settings.value(SettingKeys.createMissingTags) || true,
+    tagPairSeparator: await joplin.settings.value(SettingKeys.tagPairSeparator) || ':',
+    debugEnabled: await joplin.settings.value(SettingKeys.debugEnabled) || false,
+    storedWords: JSON.parse(await joplin.settings.value(SettingKeys.storedWords) || '[]'),
+  };
+
+  return res;
+}
+
+export async function buildSettingsDialog(): Promise<string> {
+  const settings = await collectSettings();
+
+  return await joplin.views.dialogs.setHtml(setupDialog, `
+    <input id="settings-input" type="hidden" value="${btoa(JSON.stringify(settings))}">
+    <form name="settings">
+
+      <div class="setting">
+        <label class="label block" for="tag-separator">Tag separator</label>
+        <input class="short-input" type="text" name="tagSeparator" id="tag-separator">
+      </div>
+
+      <div class="setting">
+        <input type="checkbox" id="create-missing-tags" name="createMissingTags" class="checkbox">
+        <label for="create-missing-tags" class="label">Create missing tags</label>
+      </div>
+
+      <div class="setting">
+        <input type="checkbox" id="debug-enabled-cb" name="debugEnabled" class="checkbox">
+        <label for="debug-enabled-cb" class="label">Enable debug output</label>
+      </div>
+      
+      <label class="label">
+        Target words support <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet" target="_blank">regex rules</a>.
+      </label>
+
+      <table id="table" style="width:340px;">
+        <tr>
+          <th>Target word</th>
+          <th>Tags</th>
+          <th></th>
+        </tr>
+      </table>
+
+    </form>
+  `);
+}
+
 export async function showSetupDialog() {
   logger.Info('Opening settings dialog.');
-  await joplin.views.dialogs.setHtml(setupDialog, `
-    <p>You can define multiple tags</p>
-    <label>Tag separator<input type="text" id="tag-separator" value=":"></label>
-    <label>Create missing tags<input type="checkbox" id="create-missing-tags" checked="checked"></label>
-    <table id="table" style="width:340px;">
-      <tr>
-        <th>Target word</th>
-        <th>Tags</th>
-        <th>Partial match</th>
-        <th>Case sensitive</th>
-        <th></th>
-      </tr>
-    </table>
-  `);
-  await joplin.views.dialogs.open(setupDialog);
+  const result = await joplin.views.dialogs.open(setupDialog);
+  logger.Debug('Dialog result:', result);
+  await storeSettings(result);
+}
+
+async function storeSettings(result: DialogResult) {
+  if (result.id !== 'ok') {
+    logger.Info('User pressed "cancel" on settings dialog.');
+    return;
+  }
+
+  logger.Info('User pressed "ok" on settings dialog.');
+
+  let words: StoredWord[] = [];
+  const tagSeparator = result.formData.settings.tagSeparator;
+
+  Object
+    .keys(result.formData.settings)
+    .filter(key => key.startsWith('word_'))
+    .forEach(key => {
+      const index = key.split('_')[1];
+      const word = result.formData.settings[key];
+      const tags = result.formData.settings['tags_' + index]
+        .split(tagSeparator)
+        .map((tag: string) => tag.trim())
+        .filter((tag: string) => !!tag);
+
+      words.push({ word, tags });
+    });
+
+  await joplin.settings.setValue(SettingKeys.createMissingTags, result.formData.settings.createMissingTags === 'on');
+  await joplin.settings.setValue(SettingKeys.debugEnabled, result.formData.settings.debugEnabled === 'on');
+  await joplin.settings.setValue(SettingKeys.tagPairSeparator, tagSeparator);
+  await joplin.settings.setValue(SettingKeys.storedWords, JSON.stringify(words));
 }
 
 export async function setupSettings() {
@@ -60,69 +125,42 @@ export async function setupSettings() {
     iconName: 'fas fa-tags',
   });
   
-  const settings = {};
-
-  settings[SettingKeys.tagListSeparator] = {
-    value: ',',
-    type: SettingItemType.String,
-    section: 'tagging',
-    public: true,
-    label: 'List separator',
-    description: 'Separator character for the lists.'
-  };
+  const settings: Record<string, SettingItem> = {};
 
   settings[SettingKeys.tagPairSeparator] = {
     value: ':',
     type: SettingItemType.String,
     section: 'tagging',
-    public: true,
+    public: false,
     label: 'Tag:Word pair separator',
-    description: 'Separator character for word:tag pair.'
-  };
-
-  settings[SettingKeys.fullMatchWords] = {
-    value: '',
-    type: SettingItemType.String,
-    section: 'tagging',
-    public: true,
-    label: 'Full match words',
-    description: 'Words listed here will be fully matched.\nOne word can have multiple tags: word1:tag1:tag2:tag3 word2:tag4:tag5 word3:tag6'
-  };
-
-  settings[SettingKeys.partialMatchWords] = {
-    value: '',
-    type: SettingItemType.String,
-    section: 'tagging',
-    public: true,
-    label: 'Partial match words',
-    description: 'Words listed here will be partially matched.\nOne word can have multiple tags: word1:tag1:tag2:tag3 word2:tag4:tag5 word3:tag6'
-  };
-
-  settings[SettingKeys.caseSensitiveFullMatch] = {
-    value: false,
-    type: SettingItemType.Bool,
-    section: 'tagging',
-    public: true,
-    label: 'Case sensitive matching (full)',
-    description: 'Full matches must have maching case.'
-  };
-
-  settings[SettingKeys.caseSensitivePartialMatch] = {
-    value: false,
-    type: SettingItemType.Bool,
-    section: 'tagging',
-    public: true,
-    label: 'Case sensitive matching (partial)',
-    description: 'Partial matches must have maching case.'
+    description: 'Separator character for word:tag pair.',
   };
 
   settings[SettingKeys.createMissingTags] = {
     value: true,
     type: SettingItemType.Bool,
     section: 'tagging',
-    public: true,
+    public: false,
     label: 'Create missing tags',
-    description: 'Creates missing tags when adding them to notes.'
+    description: 'Creates missing tags when adding them to notes.',
+  };
+
+  settings[SettingKeys.debugEnabled] = {
+    value: true,
+    type: SettingItemType.Bool,
+    section: 'tagging',
+    public: false,
+    label: 'Enable debug messages',
+    description: 'Generates debug messages to developer console.',
+  };
+
+  settings[SettingKeys.storedWords] = {
+    value: '[]',
+    type: SettingItemType.String,
+    section: 'tagging',
+    public: false,
+    label: 'Stored target words',
+    description: 'Holds all target words with their own match settings.',
   };
 
   logger.Info('Registering settings.');

@@ -1,8 +1,8 @@
 import joplin from 'api';
+import { Settings, StoredWord } from './interfaces';
 import { logger } from './logging';
-import { SettingKeys } from './settings';
-import { TagInterface, PaginationResult, WordDictionary, NoteInterface } from './types';
-import { caseSensitiveKey, formRegex, matchAll, parseWordList } from './utils';
+import { collectSettings, SettingKeys } from './settings';
+import { TagInterface, PaginationResult, NoteInterface } from './interfaces';
 
 
 /**
@@ -15,52 +15,21 @@ export async function autoTagCurrentNote() {
     logger.Info('No note selected. Cancelling auto tagging.');
     return;
   }
-  
-  const listSeparator = await joplin.settings.value(SettingKeys.tagListSeparator);
-  const pairSeparator = await joplin.settings.value(SettingKeys.tagPairSeparator);
-  logger.Info('List separator:', listSeparator);
-  logger.Info('Pair separator:', pairSeparator);
 
-  logger.Info('Loading full match words dictionary.');
-  // Parse word:tag dictionary for full match words.
-  const fullMatchWordsDic: WordDictionary = parseWordList(
-    await joplin.settings.value(SettingKeys.fullMatchWords), 
-    listSeparator, 
-    pairSeparator,
-  );
+  logger.Info('Starting auto-tagging.');
+  const settings = await collectSettings();
+  logger.Info('Settings:', settings);
 
-  logger.Info('Scanning for full match words.');
+  logger.Info('Scanning for words.');
   // Use the dictionary to search for keywords and produce tags-list.
-  let tagsToAdd = findTagsToAdd(
-    note.body,
-    fullMatchWordsDic, 
-    await joplin.settings.value(SettingKeys.caseSensitiveFullMatch),
-    true,
-  );
-
-  logger.Info('Loading partial match words dictionary.');
-  // Parse word:tag dictionary for partial match words.
-  const partialMatchWordsDic: WordDictionary = parseWordList(
-    await joplin.settings.value(SettingKeys.partialMatchWords), 
-    listSeparator, 
-    pairSeparator,
-  );
-
-  logger.Info('Scanning for partial match words.');
-  // Use the dictionary to search for keywords and produce tags-list.
-  tagsToAdd = tagsToAdd.concat(findTagsToAdd(
-    note.body,
-    partialMatchWordsDic, 
-    await joplin.settings.value(SettingKeys.caseSensitivePartialMatch),
-    false,
-  ));
+  let tagsToAdd = findTagsToAdd(note.body, settings);
   
   if (!tagsToAdd.length) {
     logger.Info('No tags to add. Nothing to do.');
     return;
   }
 
-  const createMissingTags = await joplin.settings.value(SettingKeys.createMissingTags);
+  const createMissingTags = await joplin.settings.value(SettingKeys.createMissingTags) as boolean;
   const tagObjs = await getActualTagObjects(tagsToAdd, createMissingTags);
   
   await setTags(note.id, tagObjs);
@@ -98,24 +67,19 @@ export async function getActualTagObjects(tagsArr: string[], createMissingTags: 
  * @param fullWord Full word search
  * @returns List of tags
  */
-export function findTagsToAdd(body: string, dictionary: WordDictionary, caseSensitive: boolean, fullWord: boolean): string[] {
+export function findTagsToAdd(body: string, settings: Settings): string[] {
   logger.Info('Attempting to find tags to add.');
 
   // Do nothing if we don't have populated dictionary.
-  if (!Object.keys(dictionary).length) {
+  if (settings.storedWords.length === 0) {
     logger.Info('Cannot search for tags. The dictionary was empty.');
     return [];
   }
-  
-  let regex = formRegex(dictionary, caseSensitive, fullWord);
-  let matchedWords = matchAll(regex, body, caseSensitive);
-  let tagsToAdd = [];
 
-  // Add tags
-  matchedWords.forEach((word) => {
-    word = caseSensitiveKey(dictionary, word, caseSensitive);
-    tagsToAdd = tagsToAdd.concat(dictionary[word]);
-  });
+  let tagsToAdd = [];
+  for (let storedWord of settings.storedWords) {
+    tagsToAdd = [...tagsToAdd, ...solveTags(storedWord, body)];
+  }
   
   // Clear empty and duplicate tags
   tagsToAdd = [...new Set(tagsToAdd.filter((tag) => !!tag))];
@@ -124,6 +88,15 @@ export function findTagsToAdd(body: string, dictionary: WordDictionary, caseSens
   return tagsToAdd;
 }
 
+function solveTags (storedWord: StoredWord, body: string): string[] {
+  const re = new RegExp(storedWord.word);
+
+  if (re.test(body)) {
+    return storedWord.tags;
+  }
+
+  return [];
+}
 
 /**
  * Creates a new tag.

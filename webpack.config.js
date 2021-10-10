@@ -181,14 +181,17 @@ const setupDialogConfig = Object.assign({}, baseConfig, {
     path: distDir,
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
+    alias: {
+      api: path.resolve(__dirname, 'api'),
+    },
+    extensions: ['.tsx', '.ts', '.js', '.json'],
   },
   plugins: [
     new CopyPlugin({
       patterns: [
         {
           from: '**/*',
-          context: path.resolve(__dirname, 'src/'),
+          context: path.resolve(__dirname, 'src'),
           to: path.resolve(__dirname, 'dist'),
           globOptions: {
             ignore: [

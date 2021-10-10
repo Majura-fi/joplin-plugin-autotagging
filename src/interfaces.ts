@@ -1,7 +1,19 @@
+export interface StoredWord {
+  word: string;
+  tags: string[];
+}
+
+export interface Settings {
+  createMissingTags: boolean;
+  tagPairSeparator: string;
+  debugEnabled: boolean;
+  storedWords: StoredWord[];
+}
+
 /**
  * Collection of word:tags pairs.
  */
-export interface WordDictionary {
+ export interface WordDictionary {
   [key: string]: string[];
 }
 
@@ -73,4 +85,11 @@ export interface TagInterface {
 export interface PaginationResult<T> {
   items: T[];
   has_more: boolean;
+}
+
+export interface WordRowInterface {
+  word: string;
+  tags: string;
+  partialMatch: boolean;
+  caseSensitive: boolean;
 }

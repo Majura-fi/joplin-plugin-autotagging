@@ -1,5 +1,5 @@
 import { logger } from './logging';
-import { WordDictionary } from './types';
+import { WordDictionary, WordRowInterface } from './interfaces';
 
 
 /**
@@ -95,20 +95,12 @@ export function caseSensitiveKey(object: object, searchKey: string, sensitive: b
  * @param pairSeparator Pair separator.
  * @returns Returns word:tag dictionary.
  */
-export function parseWordList(str: string, listSeparator: string, pairSeparator: string): WordDictionary {  
+export function parseWordList(rows: WordRowInterface[], pairSeparator: string): WordDictionary {  
   const collectedTags = {};
-  (str || '')
-    .split(listSeparator)
-    .forEach((pairStr) => {
-      const tags = pairStr.split(pairSeparator).map((tag) => tag.trim());
-      const word = tags.splice(0, 1)[0];
 
-      if (!!!word || !tags.length) {
-        return;
-      }
-
-      collectedTags[word] = tags;
-    });
+  rows.forEach((row) => {
+    collectedTags[row.word] = row.tags.split(pairSeparator);
+  });
 
   return collectedTags;
 }
