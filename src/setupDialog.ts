@@ -2,12 +2,24 @@ import { Settings, StoredWord } from './interfaces';
 import { logger } from './logging';
 
 let rowCount = 0;
-let settings: Settings = JSON.parse(atob((document.getElementById('settings-input') as HTMLInputElement).value));
+let settings: Settings = null;
 init();
 
 async function init() {
   logger.Info('Initializing settings dialog.');
+  readSettings();
   setupUI();
+}
+
+function readSettings() {
+  const element: HTMLInputElement = document.getElementById('settings-input') as HTMLInputElement;
+
+  if (!element || !element.value) {
+    throw new Error('Failed to get settings!');
+  }
+
+  const jsonStr = atob(element.value);
+  settings = JSON.parse(jsonStr);
 }
 
 async function setupUI() {

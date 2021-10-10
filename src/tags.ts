@@ -72,29 +72,42 @@ export function findTagsToAdd(body: string, settings: Settings): string[] {
 
   // Do nothing if we don't have populated dictionary.
   if (settings.storedWords.length === 0) {
-    logger.Info('Cannot search for tags. The dictionary was empty.');
+    logger.Warn('Cannot search for tags. The dictionary was empty.');
     return [];
   }
 
+  logger.Debug({body});
+
   let tagsToAdd = [];
   for (let storedWord of settings.storedWords) {
-    tagsToAdd = [...tagsToAdd, ...solveTags(storedWord, body)];
+    tagsToAdd = [...tagsToAdd, ...searchForWord(storedWord, body)];
   }
   
   // Clear empty and duplicate tags
   tagsToAdd = [...new Set(tagsToAdd.filter((tag) => !!tag))];
 
-  logger.Info(`Found ${tagsToAdd.length} tags to add.`);
+  logger.Debug(`Found ${tagsToAdd.length} tags to add.`);
   return tagsToAdd;
 }
 
-function solveTags (storedWord: StoredWord, body: string): string[] {
-  const re = new RegExp(storedWord.word);
+function searchForWord (storedWord: StoredWord, body: string): string[] {
+  let re: RegExp;
 
+  if (storedWord.word.startsWith('/')) {
+    const lastSlash = storedWord.word.lastIndexOf("/");
+    re = new RegExp(storedWord.word.slice(1, lastSlash), storedWord.word.slice(lastSlash + 1));
+  } else {
+    re = new RegExp(storedWord.word);
+  }
+
+  logger.Debug(storedWord, re, re.test(body));
+  
   if (re.test(body)) {
+    logger.Debug('Adding tags from', storedWord);
     return storedWord.tags;
   }
 
+  logger.Debug('Found no tags from', storedWord);
   return [];
 }
 

@@ -17,7 +17,7 @@ export enum SettingKeys {
 let setupDialog: string = null;
 
 export async function collectSettings(): Promise<Settings> {
-  const res = {
+  const res: Settings = {
     createMissingTags: await joplin.settings.value(SettingKeys.createMissingTags) || true,
     tagPairSeparator: await joplin.settings.value(SettingKeys.tagPairSeparator) || ':',
     debugEnabled: await joplin.settings.value(SettingKeys.debugEnabled) || false,
@@ -28,9 +28,9 @@ export async function collectSettings(): Promise<Settings> {
 }
 
 export async function buildSettingsDialog(): Promise<string> {
+  logger.Debug('Building settings dialog.');
   const settings = await collectSettings();
-
-  return await joplin.views.dialogs.setHtml(setupDialog, `
+  const templateStr = `
     <input id="settings-input" type="hidden" value="${btoa(JSON.stringify(settings))}">
     <form name="settings">
 
@@ -62,11 +62,15 @@ export async function buildSettingsDialog(): Promise<string> {
       </table>
 
     </form>
-  `);
+  `;
+  logger.Debug('Template:', templateStr);
+
+  return await joplin.views.dialogs.setHtml(setupDialog, templateStr);
 }
 
 export async function showSetupDialog() {
   logger.Info('Opening settings dialog.');
+  await buildSettingsDialog();
   const result = await joplin.views.dialogs.open(setupDialog);
   logger.Debug('Dialog result:', result);
   await storeSettings(result);
@@ -89,6 +93,11 @@ async function storeSettings(result: DialogResult) {
     .forEach(key => {
       const index = key.split('_')[1];
       const word = result.formData.settings[key];
+
+      if (!word) {
+        return;
+      }
+
       const tags = result.formData.settings['tags_' + index]
         .split(tagSeparator)
         .map((tag: string) => tag.trim())
@@ -168,11 +177,11 @@ export async function setupSettings() {
 
   logger.Info('Registering settings.onChange.');
   await joplin.settings.onChange(async (evt: ChangeEvent) => {
-    if (evt.keys.includes('debug')) {
+    if (evt.keys.includes(SettingKeys.debugEnabled)) {
       const debugEnabled = await joplin.settings.value(SettingKeys.debugEnabled);
       const logLevel = debugEnabled ? LogLevel.Trace : LogLevel.None;
-      logger.Info('Debug setting changed to', debugEnabled);
       logger.UpdateConfiguration(builder => builder.SetDefaultLogLevel(logLevel).Build());
+      logger.Info('Debug setting changed to', debugEnabled);
     }
   });
 }
