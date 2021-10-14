@@ -17,9 +17,9 @@ let setupDialog: string = null;
 
 export async function collectSettings(): Promise<Settings> {
   const res: Settings = {
-    createMissingTags: await joplin.settings.value(SettingKeys.createMissingTags) || true,
+    createMissingTags: !!(await joplin.settings.value(SettingKeys.createMissingTags)),
     tagPairSeparator: await joplin.settings.value(SettingKeys.tagPairSeparator) || ':',
-    debugEnabled: await joplin.settings.value(SettingKeys.debugEnabled) || false,
+    debugEnabled: !!(await joplin.settings.value(SettingKeys.debugEnabled)),
     storedWords: JSON.parse(await joplin.settings.value(SettingKeys.storedWords) || '[]'),
   };
 
