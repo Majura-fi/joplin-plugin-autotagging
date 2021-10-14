@@ -27,7 +27,8 @@ async function setupUI() {
   (document.getElementById('create-missing-tags') as HTMLInputElement).checked = settings.createMissingTags;
   (document.getElementById('debug-enabled-cb') as HTMLInputElement).checked = settings.debugEnabled;
   (document.getElementById('tag-separator') as HTMLInputElement).value = settings.tagPairSeparator;
-  const table = document.getElementById('table');
+
+  const table = document.querySelector('#table > tbody');
   
   logger.Info('Generating rows for stored words.');
   for(const word of settings.storedWords) {
