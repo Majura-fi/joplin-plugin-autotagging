@@ -48,17 +48,18 @@ export async function buildSettingsDialog(): Promise<string> {
         <label for="debug-enabled-cb" class="label">Enable debug output</label>
       </div>
       
-      <label class="label">
-        Target words support <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet" target="_blank">regex rules</a>.
-      </label>
-
       <table id="table" style="width:340px;">
-        <tr>
-          <th>Target word</th>
-          <th>Tags</th>
-          <th>Case sensitive</th>
-          <th></th>
-        </tr>
+        <tbody>
+          <tr>
+            <th>
+              Target word<br/>
+              <span class="small-hint">(Supports <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet" target="_blank">regex</a>)</span>
+            </th>
+            <th>Tags</th>
+            <th>Case sensitive</th>
+            <th></th>
+          </tr>
+        </tbody>
       </table>
 
     </form>
