@@ -6,7 +6,7 @@ let rowCount = 0;
 let settings: Settings = null;
 init();
 
-async function init() {
+function init() {
   logger.Info('Initializing settings dialog.');
   readSettings();
   setupUI();
@@ -23,7 +23,7 @@ function readSettings() {
   settings = JSON.parse(jsonStr);
 }
 
-async function setupUI() {
+function setupUI() {
   (document.getElementById('create-missing-tags') as HTMLInputElement).checked = settings.createMissingTags;
   (document.getElementById('debug-enabled-cb') as HTMLInputElement).checked = settings.debugEnabled;
   (document.getElementById('tag-separator') as HTMLInputElement).value = settings.tagPairSeparator;
