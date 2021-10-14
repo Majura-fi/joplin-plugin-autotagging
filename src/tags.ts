@@ -76,8 +76,6 @@ export function findTagsToAdd(body: string, settings: Settings): string[] {
     return [];
   }
 
-  logger.Debug({body});
-
   let tagsToAdd = [];
   for (let storedWord of settings.storedWords) {
     tagsToAdd = [...tagsToAdd, ...searchForWord(storedWord, body)];
@@ -86,7 +84,7 @@ export function findTagsToAdd(body: string, settings: Settings): string[] {
   // Clear empty and duplicate tags
   tagsToAdd = [...new Set(tagsToAdd.filter((tag) => !!tag))];
 
-  logger.Debug(`Found ${tagsToAdd.length} tags to add.`);
+  logger.Info(`Found ${tagsToAdd.length} tags to add.`);
   return tagsToAdd;
 }
 
@@ -94,14 +92,14 @@ function searchForWord (storedWord: StoredWord, body: string): string[] {
   const flags = storedWord.caseSensitive ? '' : 'i';
   const re: RegExp = new RegExp(storedWord.word, flags);
 
-  logger.Debug(storedWord, re, re.test(body));
+  logger.Info(storedWord, re, re.test(body));
   
   if (re.test(body)) {
-    logger.Debug('Adding tags from', storedWord);
+    logger.Info('Adding tags from', storedWord);
     return storedWord.tags;
   }
 
-  logger.Debug('Found no tags from', storedWord);
+  logger.Info('Found no tags from', storedWord);
   return [];
 }
 

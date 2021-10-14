@@ -25,7 +25,5 @@
     "webpack-cli": "^3.3.11",
     "yargs": "^16.2.0"
   },
-  "dependencies": {
-    "simplr-logger": "^1.0.1"
-  }
+  "dependencies": {}
 }

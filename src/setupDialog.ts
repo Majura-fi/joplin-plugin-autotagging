@@ -1,6 +1,7 @@
 import { Settings, StoredWord } from './interfaces';
-import { logger } from './logging';
+import { Logger } from './logging';
 
+const logger = new Logger();
 let rowCount = 0;
 let settings: Settings = null;
 init();
@@ -28,12 +29,12 @@ async function setupUI() {
   (document.getElementById('tag-separator') as HTMLInputElement).value = settings.tagPairSeparator;
   const table = document.getElementById('table');
   
-  logger.Debug('Generating rows for stored words.');
+  logger.Info('Generating rows for stored words.');
   for(const word of settings.storedWords) {
     table.appendChild(createNewRow(word));
   }
   
-  logger.Debug('Generating one empty row.');
+  logger.Info('Generating one empty row.');
   table.appendChild(createNewRow());
 }
 
@@ -46,7 +47,7 @@ function onInputKeyPress(evt: Event) {
 
   const isLastChild = !row.nextElementSibling;
   if (!isLastChild) {
-    logger.Debug('Cannot make new rows. Event did not come from the last row.');
+    logger.Info('Cannot make new rows. Event did not come from the last row.');
     return;
   }
 
@@ -57,12 +58,12 @@ function onDelete(evt: Event) {
   evt.preventDefault();
   evt.stopPropagation();
 
-  logger.Debug('Delete button pressed');
+  logger.Info('Delete button pressed');
   const row = findParentWithClass(evt.target as HTMLElement, 'word-row');
 
   const isLastChild = !row.nextElementSibling;
   if (isLastChild) {
-    logger.Debug('Cannot delete last row.');
+    logger.Info('Cannot delete last row.');
   } else {
     row.remove();
   }
@@ -79,7 +80,7 @@ function findParentWithClass(el: HTMLElement, clss: string): HTMLElement {
 }
 
 function createNewRow(word?: StoredWord): Element {
-  logger.Debug('Creating a new row.');
+  logger.Info('Creating a new row.');
   rowCount += 1;
 
   const rowEl = document.createElement('tr');
