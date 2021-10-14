@@ -54,14 +54,28 @@ function onInputKeyPress(evt: Event) {
 }
 
 function onDelete(evt: Event) {
+  evt.preventDefault();
+  evt.stopPropagation();
+
   logger.Debug('Delete button pressed');
-  const row = (evt.target as Element).parentElement.parentElement;
+  const row = findParentWithClass(evt.target as HTMLElement, 'word-row');
 
   const isLastChild = !row.nextElementSibling;
-  if (!isLastChild) {
+  if (isLastChild) {
     logger.Debug('Cannot delete last row.');
+  } else {
     row.remove();
   }
+}
+
+function findParentWithClass(el: HTMLElement, clss: string): HTMLElement {
+  let current = el.parentElement;
+  
+  while (current && !current.classList.contains(clss)) {
+    current = current.parentElement;
+  }
+
+  return current;
 }
 
 function createNewRow(word?: StoredWord): Element {
@@ -69,6 +83,7 @@ function createNewRow(word?: StoredWord): Element {
   rowCount += 1;
 
   const rowEl = document.createElement('tr');
+  rowEl.classList.add('word-row');
 
   const wordCell = document.createElement('td');
   const wordField = document.createElement('input');
