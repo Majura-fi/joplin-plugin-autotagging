@@ -1,5 +1,6 @@
 export interface StoredWord {
   word: string;
+  caseSensitive: boolean;
   tags: string[];
 }
 
@@ -8,6 +9,15 @@ export interface Settings {
   tagPairSeparator: string;
   debugEnabled: boolean;
   storedWords: StoredWord[];
+}
+
+export interface SettingsForm {
+  createMissingTags?: 'on' | 'off';
+  tagSeparator?: string;
+  debugEnabled?: 'on' | 'off';
+  word_1?: string;
+  tags_1?: string;
+  caseSensitive_1?: 'on' | 'off';
 }
 
 /**

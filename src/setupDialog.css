@@ -24,6 +24,14 @@
   text-align: start;
 }
 
+.small-hint {
+  font-size: 80%;
+}
+
+.align-center {
+  text-align: center;
+}
+
 .block {
   display: block;
   margin-bottom: 0.5em;

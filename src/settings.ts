@@ -2,9 +2,7 @@ import joplin from 'api';
 import { ChangeEvent } from 'api/JoplinSettings';
 import { DialogResult, MenuItemLocation, SettingItem, SettingItemType } from 'api/types';
 
-import { LogLevel } from 'simplr-logger';
-import { Settings, StoredWord } from './interfaces';
-
+import { Settings, SettingsForm, StoredWord } from './interfaces';
 import { logger } from './logging';
 
 export enum SettingKeys {
@@ -18,9 +16,9 @@ let setupDialog: string = null;
 
 export async function collectSettings(): Promise<Settings> {
   const res: Settings = {
-    createMissingTags: await joplin.settings.value(SettingKeys.createMissingTags) || true,
+    createMissingTags: !!(await joplin.settings.value(SettingKeys.createMissingTags)),
     tagPairSeparator: await joplin.settings.value(SettingKeys.tagPairSeparator) || ':',
-    debugEnabled: await joplin.settings.value(SettingKeys.debugEnabled) || false,
+    debugEnabled: !!(await joplin.settings.value(SettingKeys.debugEnabled)),
     storedWords: JSON.parse(await joplin.settings.value(SettingKeys.storedWords) || '[]'),
   };
 
@@ -28,7 +26,7 @@ export async function collectSettings(): Promise<Settings> {
 }
 
 export async function buildSettingsDialog(): Promise<string> {
-  logger.Debug('Building settings dialog.');
+  logger.Info('Building settings dialog.');
   const settings = await collectSettings();
   const templateStr = `
     <input id="settings-input" type="hidden" value="${btoa(JSON.stringify(settings))}">
@@ -49,21 +47,23 @@ export async function buildSettingsDialog(): Promise<string> {
         <label for="debug-enabled-cb" class="label">Enable debug output</label>
       </div>
       
-      <label class="label">
-        Target words support <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet" target="_blank">regex rules</a>.
-      </label>
-
       <table id="table" style="width:340px;">
-        <tr>
-          <th>Target word</th>
-          <th>Tags</th>
-          <th></th>
-        </tr>
+        <tbody>
+          <tr>
+            <th>
+              Target word<br/>
+              <span class="small-hint">(Supports <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet" target="_blank">regex</a>)</span>
+            </th>
+            <th>Tags</th>
+            <th>Case sensitive</th>
+            <th></th>
+          </tr>
+        </tbody>
       </table>
 
     </form>
   `;
-  logger.Debug('Template:', templateStr);
+  logger.Info('Template:', templateStr);
 
   return await joplin.views.dialogs.setHtml(setupDialog, templateStr);
 }
@@ -72,7 +72,7 @@ export async function showSetupDialog() {
   logger.Info('Opening settings dialog.');
   await buildSettingsDialog();
   const result = await joplin.views.dialogs.open(setupDialog);
-  logger.Debug('Dialog result:', result);
+  logger.Info('Dialog result:', result);
   await storeSettings(result);
 }
 
@@ -84,56 +84,46 @@ async function storeSettings(result: DialogResult) {
 
   logger.Info('User pressed "ok" on settings dialog.');
 
+  let settingsForm: SettingsForm = {
+    createMissingTags: 'off',
+    tagSeparator: ':',
+    debugEnabled: 'off',
+  };
+
+  settingsForm = Object.assign(settingsForm, result.formData.settings);
+
   let words: StoredWord[] = [];
-  const tagSeparator = result.formData.settings.tagSeparator;
+  const tagSeparator = settingsForm.tagSeparator;
 
   Object
-    .keys(result.formData.settings)
+    .keys(settingsForm)
     .filter(key => key.startsWith('word_'))
     .forEach(key => {
       const index = key.split('_')[1];
-      const word = result.formData.settings[key];
+      const word = settingsForm[key].trim();
 
       if (!word) {
         return;
       }
 
-      const tags = result.formData.settings['tags_' + index]
+      const caseSensitive: boolean = settingsForm['caseSensitive_' + index] === 'on';
+      const tags: string[] = settingsForm['tags_' + index]
         .split(tagSeparator)
         .map((tag: string) => tag.trim())
         .filter((tag: string) => !!tag);
 
-      words.push({ word, tags });
+      if (tags.length > 0) {
+        words.push({ word, tags, caseSensitive });
+      }
     });
 
-  await joplin.settings.setValue(SettingKeys.createMissingTags, result.formData.settings.createMissingTags === 'on');
-  await joplin.settings.setValue(SettingKeys.debugEnabled, result.formData.settings.debugEnabled === 'on');
+  await joplin.settings.setValue(SettingKeys.createMissingTags, settingsForm.createMissingTags === 'on');
+  await joplin.settings.setValue(SettingKeys.debugEnabled, settingsForm.debugEnabled === 'on');
   await joplin.settings.setValue(SettingKeys.tagPairSeparator, tagSeparator);
   await joplin.settings.setValue(SettingKeys.storedWords, JSON.stringify(words));
 }
 
-export async function setupSettings() {
-  logger.Info('Registering command.');
-  await joplin.commands.register({
-    name: 'openSetupDialog',
-    label: 'Open auto tagging setup',
-    execute: async () => showSetupDialog(),
-  });
-
-  logger.Info('Creating settings dialog.');
-  setupDialog = await joplin.views.dialogs.create('setupDialog');
-  await joplin.views.dialogs.addScript(setupDialog, 'setupDialog.js');
-  await joplin.views.dialogs.addScript(setupDialog, 'setupDialog.css');
-
-  logger.Info('Creating menu item.');
-  await joplin.views.menuItems.create('autotagging', 'openSetupDialog', MenuItemLocation.Tools);
-  
-  logger.Info('Registering section.');
-  await joplin.settings.registerSection('tagging', {
-    label: 'Auto Tagging',
-    iconName: 'fas fa-tags',
-  });
-  
+export async function setupSettings() {  
   const settings: Record<string, SettingItem> = {};
 
   settings[SettingKeys.tagPairSeparator] = {
@@ -155,7 +145,7 @@ export async function setupSettings() {
   };
 
   settings[SettingKeys.debugEnabled] = {
-    value: true,
+    value: false,
     type: SettingItemType.Bool,
     section: 'tagging',
     public: false,
@@ -172,16 +162,38 @@ export async function setupSettings() {
     description: 'Holds all target words with their own match settings.',
   };
 
+  logger.Info('Registering section.');
+  await joplin.settings.registerSection('tagging', {
+    label: 'Auto Tagging',
+    iconName: 'fas fa-tags',
+  });
+
   logger.Info('Registering settings.');
   await joplin.settings.registerSettings(settings);
 
+  const debugEnabled = await joplin.settings.value(SettingKeys.debugEnabled);
+  logger.enableDebug(debugEnabled);
+
+  logger.Info('Registering command.');
+  await joplin.commands.register({
+    name: 'openSetupDialog',
+    label: 'Open auto tagging setup',
+    execute: async () => showSetupDialog(),
+  });
+
+  logger.Info('Creating settings dialog.');
+  setupDialog = await joplin.views.dialogs.create('setupDialog');
+  await joplin.views.dialogs.addScript(setupDialog, 'setupDialog.js');
+  await joplin.views.dialogs.addScript(setupDialog, 'setupDialog.css');
+
+  logger.Info('Creating menu item.');
+  await joplin.views.menuItems.create('autotagging', 'openSetupDialog', MenuItemLocation.Tools);
+  
   logger.Info('Registering settings.onChange.');
   await joplin.settings.onChange(async (evt: ChangeEvent) => {
     if (evt.keys.includes(SettingKeys.debugEnabled)) {
       const debugEnabled = await joplin.settings.value(SettingKeys.debugEnabled);
-      const logLevel = debugEnabled ? LogLevel.Trace : LogLevel.None;
-      logger.UpdateConfiguration(builder => builder.SetDefaultLogLevel(logLevel).Build());
-      logger.Info('Debug setting changed to', debugEnabled);
+      logger.enableDebug(debugEnabled);
     }
   });
 }

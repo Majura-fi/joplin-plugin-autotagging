@@ -1,8 +1,39 @@
-import { ConsoleMessageHandler, LoggerBuilder, LoggerConfigurationBuilder, LogLevel } from 'simplr-logger';
+export class Logger {
+  private debugEnabled = true;
 
-const config = new LoggerConfigurationBuilder()
-  .SetDefaultLogLevel(LogLevel.None)
-  .AddWriteMessageHandler({Handler: new ConsoleMessageHandler()})
-  .Build();
+  public Info(msg: any, ...extra: any[]): void {
+    this.emit('info', msg, extra);
+  }
 
-export const logger = new LoggerBuilder(config);
+  public Warn(msg: any, ...extra: any[]): void {
+    this.emit('warn', msg, extra);
+  }
+
+  public Error(msg: any, ...extra: any[]): void {
+    this.emit('error', msg, extra);
+  }
+
+  public enableDebug(val: boolean): void {
+    this.debugEnabled = val;
+    console.info('Debug enabled: ', val);
+  }
+
+  private emit(msgType: 'debug'|'info'|'warn'|'error', msg: any, extra: any[]): void {
+    /* 
+      Don't emit console messages if 
+      debug is off and message types are 'debug' or 'info'.
+      Let warnings and errors through.
+    */
+    if (!this.debugEnabled && ['debug', 'info'].includes(msgType)) {
+      return;
+    }
+
+    if (extra.length > 0) {
+      console[msgType](msg, ...extra);
+    } else {
+      console[msgType](msg);
+    }
+  }
+}
+
+export const logger = new Logger();

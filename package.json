@@ -1,6 +1,6 @@
 {
   "name": "joplin-plugin-autotagging",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "scripts": {
     "dist": "webpack --joplin-plugin-config buildMain && webpack --joplin-plugin-config buildExtraScripts && webpack --joplin-plugin-config setupDialog && webpack --joplin-plugin-config createArchive",
@@ -25,7 +25,5 @@
     "webpack-cli": "^3.3.11",
     "yargs": "^16.2.0"
   },
-  "dependencies": {
-    "simplr-logger": "^1.0.1"
-  }
+  "dependencies": {}
 }
