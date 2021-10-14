@@ -11,6 +11,15 @@ export interface Settings {
   storedWords: StoredWord[];
 }
 
+export interface SettingsForm {
+  createMissingTags?: 'on' | 'off';
+  tagSeparator?: string;
+  debugEnabled?: 'on' | 'off';
+  word_1?: string;
+  tags_1?: string;
+  caseSensitive_1?: 'on' | 'off';
+}
+
 /**
  * Collection of word:tags pairs.
  */

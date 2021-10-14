@@ -2,8 +2,7 @@ import joplin from 'api';
 import { ChangeEvent } from 'api/JoplinSettings';
 import { DialogResult, MenuItemLocation, SettingItem, SettingItemType } from 'api/types';
 
-import { Settings, StoredWord } from './interfaces';
-
+import { Settings, SettingsForm, StoredWord } from './interfaces';
 import { logger } from './logging';
 
 export enum SettingKeys {
@@ -85,32 +84,41 @@ async function storeSettings(result: DialogResult) {
 
   logger.Info('User pressed "ok" on settings dialog.');
 
+  let settingsForm: SettingsForm = {
+    createMissingTags: 'off',
+    tagSeparator: ':',
+    debugEnabled: 'off',
+  };
+
+  settingsForm = Object.assign(settingsForm, result.formData.settings);
+
   let words: StoredWord[] = [];
-  const tagSeparator = result.formData.settings.tagSeparator;
+  const tagSeparator = settingsForm.tagSeparator;
 
   Object
-    .keys(result.formData.settings)
+    .keys(settingsForm)
     .filter(key => key.startsWith('word_'))
     .forEach(key => {
       const index = key.split('_')[1];
-      const word = result.formData.settings[key];
+      const word = settingsForm[key].trim();
 
       if (!word) {
         return;
       }
 
-      const tags = result.formData.settings['tags_' + index]
+      const caseSensitive: boolean = settingsForm['caseSensitive_' + index] === 'on';
+      const tags: string[] = settingsForm['tags_' + index]
         .split(tagSeparator)
         .map((tag: string) => tag.trim())
         .filter((tag: string) => !!tag);
 
-      const caseSensitive = result.formData.settings['caseSensitive_' + index];
-
-      words.push({ word, tags, caseSensitive });
+      if (tags.length > 0) {
+        words.push({ word, tags, caseSensitive });
+      }
     });
 
-  await joplin.settings.setValue(SettingKeys.createMissingTags, result.formData.settings.createMissingTags === 'on');
-  await joplin.settings.setValue(SettingKeys.debugEnabled, result.formData.settings.debugEnabled === 'on');
+  await joplin.settings.setValue(SettingKeys.createMissingTags, settingsForm.createMissingTags === 'on');
+  await joplin.settings.setValue(SettingKeys.debugEnabled, settingsForm.debugEnabled === 'on');
   await joplin.settings.setValue(SettingKeys.tagPairSeparator, tagSeparator);
   await joplin.settings.setValue(SettingKeys.storedWords, JSON.stringify(words));
 }
