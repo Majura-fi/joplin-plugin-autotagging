@@ -91,14 +91,8 @@ export function findTagsToAdd(body: string, settings: Settings): string[] {
 }
 
 function searchForWord (storedWord: StoredWord, body: string): string[] {
-  let re: RegExp;
-
-  if (storedWord.word.startsWith('/')) {
-    const lastSlash = storedWord.word.lastIndexOf("/");
-    re = new RegExp(storedWord.word.slice(1, lastSlash), storedWord.word.slice(lastSlash + 1));
-  } else {
-    re = new RegExp(storedWord.word);
-  }
+  const flags = storedWord.caseSensitive ? '' : 'i';
+  const re: RegExp = new RegExp(storedWord.word, flags);
 
   logger.Debug(storedWord, re, re.test(body));
   

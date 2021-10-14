@@ -24,6 +24,10 @@
   text-align: start;
 }
 
+.align-center {
+  text-align: center;
+}
+
 .block {
   display: block;
   margin-bottom: 0.5em;

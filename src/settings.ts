@@ -57,6 +57,7 @@ export async function buildSettingsDialog(): Promise<string> {
         <tr>
           <th>Target word</th>
           <th>Tags</th>
+          <th>Case sensitive</th>
           <th></th>
         </tr>
       </table>
@@ -103,7 +104,9 @@ async function storeSettings(result: DialogResult) {
         .map((tag: string) => tag.trim())
         .filter((tag: string) => !!tag);
 
-      words.push({ word, tags });
+      const caseSensitive = result.formData.settings['caseSensitive_' + index];
+
+      words.push({ word, tags, caseSensitive });
     });
 
   await joplin.settings.setValue(SettingKeys.createMissingTags, result.formData.settings.createMissingTags === 'on');

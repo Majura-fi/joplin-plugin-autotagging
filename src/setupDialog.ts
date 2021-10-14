@@ -68,41 +68,48 @@ function createNewRow(word?: StoredWord): Element {
   logger.Debug('Creating a new row.');
   rowCount += 1;
 
+  const rowEl = document.createElement('tr');
+
+  const wordCell = document.createElement('td');
   const wordField = document.createElement('input');
   wordField.classList.add('word-field');
   wordField.name = 'word_' + rowCount;
   wordField.type = 'text';
   wordField.value = word?.word || '';
   wordField.addEventListener('keypress', (evt) => onInputKeyPress(evt));
+  wordCell.append(wordField);
+  rowEl.append(wordCell);
 
+  const tagsCell = document.createElement('td');
   const tagsField = document.createElement('input');
   tagsField.classList.add('tags-field');
   tagsField.name = 'tags_' + rowCount;
   tagsField.type = 'text';
   tagsField.value = word?.tags.join(settings.tagPairSeparator) || '';
   tagsField.addEventListener('keypress', (evt) => onInputKeyPress(evt));
+  tagsCell.append(tagsField);
+  rowEl.append(tagsCell);
+
+  const caseSensitiveCell = document.createElement('td');
+  caseSensitiveCell.classList.add('align-center');
+  const caseSensitiveField = document.createElement('input');
+  caseSensitiveField.name = 'caseSensitive_' + rowCount;
+  caseSensitiveField.type = 'checkbox';
+  caseSensitiveField.checked = !!word?.caseSensitive;
+  caseSensitiveCell.append(caseSensitiveField);
+  rowEl.append(caseSensitiveCell);
 
   const trashSpan = document.createElement('span');
   trashSpan.classList.add('fas');
   trashSpan.classList.add('fa-trash-can');
   trashSpan.textContent = '🗑';
 
+  const deleteCell = document.createElement('td');
   const deleteBtn = document.createElement('button');
   deleteBtn.addEventListener('click', (evt) => onDelete(evt));
-
-  const tagsCell = document.createElement('td');
-  const wordCell = document.createElement('td');
-  const partialMatchCell = document.createElement('td');
-  const caseSensitiveCell = document.createElement('td');
-  const rowEl = document.createElement('tr');
-
-  wordCell.append(wordField);
-  tagsCell.append(tagsField);
   deleteBtn.append(trashSpan);
-  rowEl.append(wordCell);
-  rowEl.append(tagsCell);
-  rowEl.append(partialMatchCell);
-  rowEl.append(caseSensitiveCell);
-  rowEl.append(deleteBtn);
+  deleteCell.append(deleteBtn);
+  rowEl.append(deleteCell);
+
   return rowEl;
 }

@@ -1,5 +1,6 @@
 export interface StoredWord {
   word: string;
+  caseSensitive: boolean;
   tags: string[];
 }
 
