@@ -40,11 +40,10 @@ function setupUI() {
   table.appendChild(createNewRow());
 }
 
-function onInputKeyPress(evt: Event) {
+function onInputKeyPress(evt: Event): void {
   logger.Info('Key pressed inside a field.');
 
-  const input = evt.target as Element;
-  const row = input.parentElement.parentElement;
+  const row = findParentWithClass(evt.target as HTMLElement, 'word-row');
   const table = row.parentElement;
 
   const isLastChild = !row.nextElementSibling;
