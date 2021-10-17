@@ -10,6 +10,7 @@ export enum SettingKeys {
   tagPairSeparator = 'tagPairSeparator',
   debugEnabled = 'debugEnabled',
   storedWords = 'storedWords',
+  infoLabel = 'infoLabel',
 };
 
 let setupDialog: string = null;
@@ -161,6 +162,15 @@ export async function setupSettings() {
     label: 'Stored target words',
     description: 'Holds all target words with their own match settings.',
   };
+
+  settings[SettingKeys.infoLabel] = {
+    value: true,
+    type: SettingItemType.Bool,
+    section: 'tagging',
+    public: true,
+    label: 'Settings 404',
+    description: 'You can find settings via Tools > Open auto-tagging setup',
+  }
 
   logger.Info('Registering section.');
   await joplin.settings.registerSection('tagging', {
