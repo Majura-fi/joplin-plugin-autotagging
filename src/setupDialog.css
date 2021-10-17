@@ -66,3 +66,12 @@
   position: relative;
   top: -3px;
 }
+
+h1 {
+  font-size: 1.5em;
+  margin: 1em 0 0 0;
+}
+
+#regex-tester-error {
+  color: #dc7e7e;
+}

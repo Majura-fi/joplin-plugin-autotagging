@@ -10,6 +10,7 @@ function init() {
   logger.Info('Initializing settings dialog.');
   readSettings();
   setupUI();
+  setupTester();
 }
 
 function readSettings() {
@@ -129,4 +130,37 @@ function createNewRow(word?: StoredWord): Element {
   rowEl.append(deleteCell);
 
   return rowEl;
+}
+
+function setupTester(): void {
+  const ruleEl = document.getElementById('regex-tester-rule') as HTMLInputElement;
+  const caseEl = document.getElementById('regex-tester-case') as HTMLInputElement;
+  const targetEl = document.getElementById('regex-tester-target') as HTMLInputElement;
+  const errorEl = document.getElementById('regex-tester-error') as HTMLInputElement;
+
+  ruleEl.addEventListener('keyup', testRegex);
+  targetEl.addEventListener('keyup', testRegex);
+  caseEl.addEventListener('click', testRegex);
+
+  function testRegex(): void {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+    ruleEl.style.backgroundColor = null;
+    targetEl.style.backgroundColor = null;
+
+    if (!ruleEl.value || !targetEl.value) {
+      return;
+    }
+
+    try {
+      const re = new RegExp(ruleEl.value, caseEl.checked ? '' : 'i');
+      const isMatch = re.test(targetEl.value);  
+      
+      ruleEl.style.backgroundColor = isMatch ? "#7edc7e" : "#dc7e7e";
+      targetEl.style.backgroundColor = isMatch ? "#7edc7e" : "#dc7e7e";
+    } catch (err) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = err.message;
+    }
+  }
 }

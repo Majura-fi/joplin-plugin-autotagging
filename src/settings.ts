@@ -62,6 +62,18 @@ export async function buildSettingsDialog(): Promise<string> {
         </tbody>
       </table>
 
+      <div class="setting">
+        <h1>Regex tester</h1>
+        <br/>
+        <label for="regex-tester-target">Target text</label>
+        <input id="regex-tester-target" type="text" placeholder="Target text">
+        <br/>
+        <label for="regex-tester-rule">Rule</label>
+        <span id="regex-tester-error"></span>
+        <input id="regex-tester-rule" type="text" placeholder="Rule">
+        <label for="regex-tester-case">Case sensitive</label>
+        <input id="regex-tester-case" type="checkbox">
+      </div>
     </form>
   `;
   logger.Info('Template:', templateStr);
