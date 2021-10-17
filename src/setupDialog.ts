@@ -81,48 +81,79 @@ function findParentWithClass(el: HTMLElement, clss: string): HTMLElement {
   return current;
 }
 
-function createNewRow(word?: StoredWord): Element {
+
+/**
+ * Generates a new row for word-match settings table.
+ * 
+ * If values-parameter is supplied, the row inputs will receive prepopulated values from it.
+ * 
+ * @param values Default values for the row fields.
+ * @returns Returns a new row for table element.
+ */
+function createNewRow(values?: StoredWord): HTMLTableRowElement {
   logger.Info('Creating a new row.');
   rowCount += 1;
 
   const rowEl = document.createElement('tr');
   rowEl.classList.add('word-row');
 
+  // --------- WORD FIELD ---------
   const wordCell = document.createElement('td');
+  wordCell.classList.add('col-target-word');
+  
+  let divInputContainer = document.createElement('div');
+  divInputContainer.classList.add('cell-input-container');
+  
   const wordField = document.createElement('input');
   wordField.classList.add('word-field');
   wordField.name = 'word_' + rowCount;
   wordField.type = 'text';
-  wordField.value = word?.word || '';
+  wordField.value = values?.word || '';
   wordField.addEventListener('keypress', (evt) => onInputKeyPress(evt));
-  wordCell.append(wordField);
+  divInputContainer.append(wordField);
+  wordCell.append(divInputContainer);
   rowEl.append(wordCell);
 
+  // --------- TAGS FIELD ---------
+  
   const tagsCell = document.createElement('td');
+  tagsCell.classList.add('col-tags');
+  
+  divInputContainer = document.createElement('div');
+  divInputContainer.classList.add('cell-input-container');
+  
   const tagsField = document.createElement('input');
   tagsField.classList.add('tags-field');
   tagsField.name = 'tags_' + rowCount;
   tagsField.type = 'text';
-  tagsField.value = word?.tags.join(settings.tagPairSeparator) || '';
+  tagsField.value = values?.tags.join(settings.tagPairSeparator) || '';
   tagsField.addEventListener('keypress', (evt) => onInputKeyPress(evt));
-  tagsCell.append(tagsField);
+  divInputContainer.append(tagsField);
+  tagsCell.append(divInputContainer);
   rowEl.append(tagsCell);
-
+  
+  // --------- CASE SENSITIVE FIELD ---------
+  
   const caseSensitiveCell = document.createElement('td');
-  caseSensitiveCell.classList.add('align-center');
+  caseSensitiveCell.classList.add('col-case-sensitive');
+  
   const caseSensitiveField = document.createElement('input');
   caseSensitiveField.name = 'caseSensitive_' + rowCount;
   caseSensitiveField.type = 'checkbox';
-  caseSensitiveField.checked = !!word?.caseSensitive;
+  caseSensitiveField.checked = !!values?.caseSensitive;
   caseSensitiveCell.append(caseSensitiveField);
   rowEl.append(caseSensitiveCell);
+  
+  // --------- DELETE FIELD ---------
+
+  const deleteCell = document.createElement('td');
+  deleteCell.classList.add('col-delete');
 
   const trashSpan = document.createElement('span');
   trashSpan.classList.add('fas');
   trashSpan.classList.add('fa-trash-can');
   trashSpan.textContent = '🗑';
 
-  const deleteCell = document.createElement('td');
   const deleteBtn = document.createElement('button');
   deleteBtn.addEventListener('click', (evt) => onDelete(evt));
   deleteBtn.append(trashSpan);

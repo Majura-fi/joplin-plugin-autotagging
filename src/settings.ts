@@ -34,33 +34,48 @@ export async function buildSettingsDialog(): Promise<string> {
     <form name="settings">
 
       <div class="setting">
-        <label class="label block" for="tag-separator">Tag separator</label>
         <input class="short-input" type="text" name="tagSeparator" id="tag-separator">
+        <label class="label block" for="tag-separator">Tag separator</label>
+        <span class="small-hint">Used to split tags list into separate tags.</span>
       </div>
 
       <div class="setting">
         <input type="checkbox" id="create-missing-tags" name="createMissingTags" class="checkbox">
         <label for="create-missing-tags" class="label">Create missing tags</label>
+        <span class="small-hint">Creates the missing tags when tagging a note.</span>
       </div>
 
       <div class="setting">
         <input type="checkbox" id="debug-enabled-cb" name="debugEnabled" class="checkbox">
         <label for="debug-enabled-cb" class="label">Enable debug output</label>
+        <span class="small-hint">Prints debug info to Help > Toggle development tools.</span>
       </div>
-      
-      <table id="table" style="width:340px;">
-        <tbody>
-          <tr>
-            <th>
-              Target word<br/>
-              <span class="small-hint">(Supports <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet" target="_blank">regex</a>)</span>
-            </th>
-            <th>Tags</th>
-            <th>Case sensitive</th>
-            <th></th>
-          </tr>
-        </tbody>
-      </table>
+
+      <div class="setting">      
+        <table id="table">
+          <tbody>
+            <tr>
+              <th class="col-target-word">
+                Target word
+                <span class="small-hint">
+                  (Supports 
+                    <a 
+                      href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet" 
+                      target="_blank">regex
+                    </a>
+                  )
+                </span>
+              </th>
+              <th class="col-tags">
+                Tags
+                <span class="small-hint">The tag separator will be used here to split strings into separate tags.</span>
+              </th>
+              <th class="col-case-sensitive">Case<br/>sensitive</th>
+              <th class="col-delete"></th>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div class="setting">
         <h1>Regex tester</h1>
