@@ -177,7 +177,7 @@ export async function setupSettings() {
   logger.Info('Registering command.');
   await joplin.commands.register({
     name: 'openSetupDialog',
-    label: 'Open auto tagging setup',
+    label: 'Open auto-tagging setup',
     execute: async () => showSetupDialog(),
   });
 
