@@ -26,6 +26,8 @@
 
 .small-hint {
   font-size: 80%;
+  color: rgb(153, 153, 153);
+  display: block;
 }
 
 .align-center {
@@ -41,7 +43,6 @@
   font-family: Roboto;
   font-size: 13px;
   line-height: 1.6em;
-  color: rgb(50, 55, 63);
   display: inline;
   font-weight: 500;
   margin-bottom: 0px;
@@ -65,4 +66,34 @@
 .checkbox ~ .label {
   position: relative;
   top: -3px;
+}
+
+#table {
+  width: 100%;
+  display: table;
+}
+
+.col-case-sensitive {
+  text-align: center;
+}
+
+.cell-input-container {
+  display: flex;
+}
+
+.cell-input-container > input[type="text"] {
+  flex-grow: 1;
+}
+
+a[href] {
+  color: rgb(166,166,255);
+}
+
+h1 {
+  font-size: 1.5em;
+  margin: 1em 0 0 0;
+}
+
+#regex-tester-error {
+  color: #dc7e7e;
 }

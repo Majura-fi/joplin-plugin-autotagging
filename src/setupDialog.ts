@@ -6,12 +6,21 @@ let rowCount = 0;
 let settings: Settings = null;
 init();
 
+
+/**
+ * Init function for the dialog.
+ */
 function init() {
   logger.Info('Initializing settings dialog.');
   readSettings();
   setupUI();
+  setupTester();
 }
 
+
+/**
+ * Attempts to read settings from the form.
+ */
 function readSettings() {
   const element: HTMLInputElement = document.getElementById('settings-input') as HTMLInputElement;
 
@@ -23,6 +32,10 @@ function readSettings() {
   settings = JSON.parse(jsonStr);
 }
 
+
+/**
+ * Populates the settings dialog.
+ */
 function setupUI() {
   (document.getElementById('create-missing-tags') as HTMLInputElement).checked = settings.createMissingTags;
   (document.getElementById('debug-enabled-cb') as HTMLInputElement).checked = settings.debugEnabled;
@@ -39,11 +52,16 @@ function setupUI() {
   table.appendChild(createNewRow());
 }
 
-function onInputKeyPress(evt: Event) {
+
+/**
+ * Called when user starts typing on word-match setting row.
+ * 
+ * If the row is the last row of the table, this will create a new last row.
+ */
+function onInputKeyPress(evt: Event): void {
   logger.Info('Key pressed inside a field.');
 
-  const input = evt.target as Element;
-  const row = input.parentElement.parentElement;
+  const row = findParentWithClass(evt.target as HTMLElement, 'word-row');
   const table = row.parentElement;
 
   const isLastChild = !row.nextElementSibling;
@@ -55,7 +73,11 @@ function onInputKeyPress(evt: Event) {
   table.append(createNewRow());
 }
 
-function onDelete(evt: Event) {
+
+/**
+ * Called when user presses delete button on word-match setting row.
+ */
+function onDelete(evt: Event): void {
   evt.preventDefault();
   evt.stopPropagation();
 
@@ -70,6 +92,15 @@ function onDelete(evt: Event) {
   }
 }
 
+
+/**
+ * Attempts to find a parent element with a specific class.
+ * 
+ * @param el Current element.
+ * @param clss Class string to be find.
+ * @returns Returns HTMLElement if an element with the class was found, 
+ *          or null if no elements were found.
+ */
 function findParentWithClass(el: HTMLElement, clss: string): HTMLElement {
   let current = el.parentElement;
   
@@ -80,48 +111,79 @@ function findParentWithClass(el: HTMLElement, clss: string): HTMLElement {
   return current;
 }
 
-function createNewRow(word?: StoredWord): Element {
+
+/**
+ * Generates a new row for word-match settings table.
+ * 
+ * If values-parameter is supplied, the row inputs will receive prepopulated values from it.
+ * 
+ * @param values Default values for the row fields.
+ * @returns Returns a new row for table element.
+ */
+function createNewRow(values?: StoredWord): HTMLTableRowElement {
   logger.Info('Creating a new row.');
   rowCount += 1;
 
   const rowEl = document.createElement('tr');
   rowEl.classList.add('word-row');
 
+  // --------- WORD FIELD ---------
   const wordCell = document.createElement('td');
+  wordCell.classList.add('col-target-word');
+  
+  let divInputContainer = document.createElement('div');
+  divInputContainer.classList.add('cell-input-container');
+  
   const wordField = document.createElement('input');
   wordField.classList.add('word-field');
   wordField.name = 'word_' + rowCount;
   wordField.type = 'text';
-  wordField.value = word?.word || '';
+  wordField.value = values?.word || '';
   wordField.addEventListener('keypress', (evt) => onInputKeyPress(evt));
-  wordCell.append(wordField);
+  divInputContainer.append(wordField);
+  wordCell.append(divInputContainer);
   rowEl.append(wordCell);
 
+  // --------- TAGS FIELD ---------
+  
   const tagsCell = document.createElement('td');
+  tagsCell.classList.add('col-tags');
+  
+  divInputContainer = document.createElement('div');
+  divInputContainer.classList.add('cell-input-container');
+  
   const tagsField = document.createElement('input');
   tagsField.classList.add('tags-field');
   tagsField.name = 'tags_' + rowCount;
   tagsField.type = 'text';
-  tagsField.value = word?.tags.join(settings.tagPairSeparator) || '';
+  tagsField.value = values?.tags.join(settings.tagPairSeparator) || '';
   tagsField.addEventListener('keypress', (evt) => onInputKeyPress(evt));
-  tagsCell.append(tagsField);
+  divInputContainer.append(tagsField);
+  tagsCell.append(divInputContainer);
   rowEl.append(tagsCell);
-
+  
+  // --------- CASE SENSITIVE FIELD ---------
+  
   const caseSensitiveCell = document.createElement('td');
-  caseSensitiveCell.classList.add('align-center');
+  caseSensitiveCell.classList.add('col-case-sensitive');
+  
   const caseSensitiveField = document.createElement('input');
   caseSensitiveField.name = 'caseSensitive_' + rowCount;
   caseSensitiveField.type = 'checkbox';
-  caseSensitiveField.checked = !!word?.caseSensitive;
+  caseSensitiveField.checked = !!values?.caseSensitive;
   caseSensitiveCell.append(caseSensitiveField);
   rowEl.append(caseSensitiveCell);
+  
+  // --------- DELETE FIELD ---------
+
+  const deleteCell = document.createElement('td');
+  deleteCell.classList.add('col-delete');
 
   const trashSpan = document.createElement('span');
   trashSpan.classList.add('fas');
   trashSpan.classList.add('fa-trash-can');
   trashSpan.textContent = '🗑';
 
-  const deleteCell = document.createElement('td');
   const deleteBtn = document.createElement('button');
   deleteBtn.addEventListener('click', (evt) => onDelete(evt));
   deleteBtn.append(trashSpan);
@@ -129,4 +191,37 @@ function createNewRow(word?: StoredWord): Element {
   rowEl.append(deleteCell);
 
   return rowEl;
+}
+
+function setupTester(): void {
+  const ruleEl = document.getElementById('regex-tester-rule') as HTMLInputElement;
+  const caseEl = document.getElementById('regex-tester-case') as HTMLInputElement;
+  const targetEl = document.getElementById('regex-tester-target') as HTMLInputElement;
+  const errorEl = document.getElementById('regex-tester-error') as HTMLInputElement;
+
+  ruleEl.addEventListener('keyup', testRegex);
+  targetEl.addEventListener('keyup', testRegex);
+  caseEl.addEventListener('click', testRegex);
+
+  function testRegex(): void {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+    ruleEl.style.backgroundColor = null;
+    targetEl.style.backgroundColor = null;
+
+    if (!ruleEl.value || !targetEl.value) {
+      return;
+    }
+
+    try {
+      const re = new RegExp(ruleEl.value, caseEl.checked ? '' : 'i');
+      const isMatch = re.test(targetEl.value);  
+      
+      ruleEl.style.backgroundColor = isMatch ? "#7edc7e" : "#dc7e7e";
+      targetEl.style.backgroundColor = isMatch ? "#7edc7e" : "#dc7e7e";
+    } catch (err) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = err.message;
+    }
+  }
 }

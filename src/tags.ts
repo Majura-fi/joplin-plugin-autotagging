@@ -8,7 +8,7 @@ import { TagInterface, PaginationResult, NoteInterface } from './interfaces';
 /**
  * Scans current note and adds tags based on user specified keywords.
  */
-export async function autoTagCurrentNote() {
+export async function autoTagCurrentNote(): Promise<void> {
   const note: NoteInterface = await joplin.workspace.selectedNote();
   
   if (!note) {
@@ -41,7 +41,7 @@ export async function autoTagCurrentNote() {
  * @param tagsArr List of tags strings.
  * @returns Returns list of real tag objects.
  */
-export async function getActualTagObjects(tagsArr: string[], createMissingTags: boolean) {
+export async function getActualTagObjects(tagsArr: string[], createMissingTags: boolean): Promise<TagInterface[]> {
   const allTags = await getAllTags();
   const newTags = tagsArr.filter((tag) => !!!allTags.find((atag) => tag === atag.title));
   
@@ -88,6 +88,15 @@ export function findTagsToAdd(body: string, settings: Settings): string[] {
   return tagsToAdd;
 }
 
+
+/**
+ * Converts match-word into a regex rule and attempts to find any matching text
+ * with it.
+ * 
+ * @param storedWord match-word settings.
+ * @param body Target body.
+ * @returns Returns list of tags from the current match-word setting.
+ */
 function searchForWord (storedWord: StoredWord, body: string): string[] {
   const flags = storedWord.caseSensitive ? '' : 'i';
   const re: RegExp = new RegExp(storedWord.word, flags);
@@ -102,6 +111,7 @@ function searchForWord (storedWord: StoredWord, body: string): string[] {
   logger.Info('Found no tags from', storedWord);
   return [];
 }
+
 
 /**
  * Creates a new tag.
@@ -122,7 +132,7 @@ export async function createTag(tag: string): Promise<TagInterface> {
  * @param noteId Target note id.
  * @param tags List of tags to insert.
  */
-export async function setTags(noteId: string, tags: TagInterface[]) {  
+export async function setTags(noteId: string, tags: TagInterface[]): Promise<void> {  
   logger.Info(`Setting ${tags.length} tags to note ${noteId}.`);
 
   for (let tag of tags) {
