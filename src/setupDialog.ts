@@ -6,6 +6,10 @@ let rowCount = 0;
 let settings: Settings = null;
 init();
 
+
+/**
+ * Init function for the dialog.
+ */
 function init() {
   logger.Info('Initializing settings dialog.');
   readSettings();
@@ -13,6 +17,10 @@ function init() {
   setupTester();
 }
 
+
+/**
+ * Attempts to read settings from the form.
+ */
 function readSettings() {
   const element: HTMLInputElement = document.getElementById('settings-input') as HTMLInputElement;
 
@@ -24,6 +32,10 @@ function readSettings() {
   settings = JSON.parse(jsonStr);
 }
 
+
+/**
+ * Populates the settings dialog.
+ */
 function setupUI() {
   (document.getElementById('create-missing-tags') as HTMLInputElement).checked = settings.createMissingTags;
   (document.getElementById('debug-enabled-cb') as HTMLInputElement).checked = settings.debugEnabled;
@@ -40,6 +52,12 @@ function setupUI() {
   table.appendChild(createNewRow());
 }
 
+
+/**
+ * Called when user starts typing on word-match setting row.
+ * 
+ * If the row is the last row of the table, this will create a new last row.
+ */
 function onInputKeyPress(evt: Event): void {
   logger.Info('Key pressed inside a field.');
 
@@ -55,7 +73,11 @@ function onInputKeyPress(evt: Event): void {
   table.append(createNewRow());
 }
 
-function onDelete(evt: Event) {
+
+/**
+ * Called when user presses delete button on word-match setting row.
+ */
+function onDelete(evt: Event): void {
   evt.preventDefault();
   evt.stopPropagation();
 
@@ -70,6 +92,15 @@ function onDelete(evt: Event) {
   }
 }
 
+
+/**
+ * Attempts to find a parent element with a specific class.
+ * 
+ * @param el Current element.
+ * @param clss Class string to be find.
+ * @returns Returns HTMLElement if an element with the class was found, 
+ *          or null if no elements were found.
+ */
 function findParentWithClass(el: HTMLElement, clss: string): HTMLElement {
   let current = el.parentElement;
   

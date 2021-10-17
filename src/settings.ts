@@ -5,6 +5,10 @@ import { DialogResult, MenuItemLocation, SettingItem, SettingItemType } from 'ap
 import { Settings, SettingsForm, StoredWord } from './interfaces';
 import { logger } from './logging';
 
+
+/**
+ * Currently used setting keys.
+ */
 export enum SettingKeys {
   createMissingTags = 'createMissingTags',
   tagPairSeparator = 'tagPairSeparator',
@@ -15,6 +19,11 @@ export enum SettingKeys {
 
 let setupDialog: string = null;
 
+
+/**
+ * Creates a settings object.
+ * @returns Returns an object with current plugin settings.
+ */
 export async function collectSettings(): Promise<Settings> {
   const res: Settings = {
     createMissingTags: !!(await joplin.settings.value(SettingKeys.createMissingTags)),
@@ -26,6 +35,17 @@ export async function collectSettings(): Promise<Settings> {
   return res;
 }
 
+
+/**
+ * Generates a new template for the settings dialog.
+ * 
+ * Settings are embeded to the template, because for some reason devs do not
+ * have full control of the dialog contents, nor have any way to communicate 
+ * with the dialog. Also the main settings page has limited support for anything 
+ * custom made setting forms.
+ * 
+ * @returns Returns new dialog template as a HTML string with embedded settings.
+ */
 export async function buildSettingsDialog(): Promise<string> {
   logger.Info('Building settings dialog.');
   const settings = await collectSettings();
@@ -96,6 +116,10 @@ export async function buildSettingsDialog(): Promise<string> {
   return await joplin.views.dialogs.setHtml(setupDialog, templateStr);
 }
 
+
+/**
+ * Setups dialog and shows it to the user.
+ */
 export async function showSetupDialog() {
   logger.Info('Opening settings dialog.');
   await buildSettingsDialog();
@@ -104,7 +128,12 @@ export async function showSetupDialog() {
   await storeSettings(result);
 }
 
-async function storeSettings(result: DialogResult) {
+
+/**
+ * Parses results from settings dialog and stores new settings to Joplin.
+ * @param result The dialog result.
+ */
+async function storeSettings(result: DialogResult): Promise<void> {
   if (result.id !== 'ok') {
     logger.Info('User pressed "cancel" on settings dialog.');
     return;
@@ -151,6 +180,10 @@ async function storeSettings(result: DialogResult) {
   await joplin.settings.setValue(SettingKeys.storedWords, JSON.stringify(words));
 }
 
+
+/**
+ * Setups settings, sections, menu items and listener for change-events.
+ */
 export async function setupSettings() {  
   const settings: Record<string, SettingItem> = {};
 
