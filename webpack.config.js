@@ -207,6 +207,40 @@ const setupDialogConfig = Object.assign({}, baseConfig, {
   ],
 });
 
+const batchTaggingPanelConfig = Object.assign({}, baseConfig, {
+  entry: './src/panel-batch-tagging/panel.ts',
+  target: 'web',
+  output: {
+    filename: 'panel.js',
+    path: distDir,
+  },
+  resolve: {
+    alias: {
+      api: path.resolve(__dirname, 'api'),
+    },
+    extensions: ['.tsx', '.ts', '.js', '.json'],
+  },
+  plugins: [
+    new CopyPlugin({
+      patterns: [
+        {
+          from: '**/*',
+          context: path.resolve(__dirname, 'src'),
+          to: path.resolve(__dirname, 'dist'),
+          globOptions: {
+            ignore: [
+              // All TypeScript files are compiled to JS and
+              // already copied into /dist so we don't copy them.
+              '**/*.ts',
+              '**/*.tsx',
+            ],
+          },
+        },
+      ],
+    }),
+  ],
+});
+
 const createArchiveConfig = {
   stats: 'errors-only',
   entry: './dist/index.js',
@@ -286,6 +320,7 @@ function main(processArgv) {
     createArchive: [createArchiveConfig],
 
     setupDialog: [setupDialogConfig],
+    batchTaggingPanel: [batchTaggingPanelConfig],
   };
 
   // If we are running the first config step, we clean up and create the build

@@ -1,5 +1,6 @@
 import joplin from 'api';
 import { logger } from './logging';
+import { setupPanel } from './panel-batch-tagging/background';
 
 import { setupSettings } from './settings';
 import { autoTagCurrentNote } from './tags';
@@ -16,5 +17,6 @@ joplin.plugins.register({
     });
     
     await setupSettings();
+    await setupPanel();
   },
 });
