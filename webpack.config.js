@@ -212,7 +212,7 @@ const batchTaggingPanelConfig = Object.assign({}, baseConfig, {
   target: 'web',
   output: {
     filename: 'panel.js',
-    path: distDir,
+    path: path.resolve(distDir, 'panel-batch-tagging'),
   },
   resolve: {
     alias: {
