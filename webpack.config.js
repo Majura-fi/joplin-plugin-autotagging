@@ -319,8 +319,7 @@ function main(processArgv) {
     // temporary file before packaging the plugin.
     createArchive: [createArchiveConfig],
 
-    setupDialog: [setupDialogConfig],
-    batchTaggingPanel: [batchTaggingPanelConfig],
+    extraComponents: [setupDialogConfig, batchTaggingPanelConfig],
   };
 
   // If we are running the first config step, we clean up and create the build
