@@ -1,3 +1,26 @@
+export interface notesQuery {
+  fields?: string[];
+  order_by?: string;
+  order_dir?: string;
+  limit?: number;
+  page?: number;
+}
+
+export interface notesPaging {
+  items: any[];
+  has_more: boolean;
+}
+
+export interface PollReply {
+  progress: number;
+  completed: boolean;
+}
+
+export interface PanelMessage {
+  name: string;
+  data: any;
+}
+
 export interface StoredWord {
   word: string;
   caseSensitive: boolean;

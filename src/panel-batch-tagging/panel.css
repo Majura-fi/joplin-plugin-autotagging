@@ -1,0 +1,17 @@
+#progress-bar-container {
+  height: 1em;
+  border: 1px solid #418249;
+  border-radius: 0.5em; 
+}
+
+#progress-bar {
+  width: 0%;
+  background: #67ca73;
+  height: 100%;
+}
+
+#progress-value {
+  position: absolute;
+  text-align: center;
+  width: 100%;
+}

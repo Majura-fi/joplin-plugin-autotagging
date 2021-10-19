@@ -10,7 +10,14 @@ import { TagInterface, PaginationResult, NoteInterface } from './interfaces';
  */
 export async function autoTagCurrentNote(): Promise<void> {
   const note: NoteInterface = await joplin.workspace.selectedNote();
-  
+  await autoTagNote(note);
+}
+
+
+/**
+ * Scans given note and adds tags based on user specified keywords.
+ */
+export async function autoTagNote(note: NoteInterface): Promise<void> {  
   if (!note) {
     logger.Info('No note selected. Cancelling auto tagging.');
     return;
