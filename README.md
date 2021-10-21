@@ -2,7 +2,7 @@
 A Joplin plugin which allows autotagging based on user defined words. Also allows batch autotag all notes.
 
 # FAQ
-## How it works?
+## How does it work?
 User can define multiple target words and for each word bunch of tags. Then every time a note is changed, the plugin scans for the target words and, if found, adds tags to that note.
 
 ## How does batch autotag work?
