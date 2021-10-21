@@ -6,7 +6,7 @@
 	"name": "Autotagging",
 	"description": "Adds automatically tags when user specified words are found in the note.",
 	"author": "Majura-fi",
-	"homepage_url": "",
+	"homepage_url": "https://github.com/Majura-fi/joplin-plugin-autotagging",
 	"repository_url": "https://github.com/Majura-fi/joplin-plugin-autotagging",
 	"keywords": ["autotagging", "tagging", "automatic", "tag"]
 }
