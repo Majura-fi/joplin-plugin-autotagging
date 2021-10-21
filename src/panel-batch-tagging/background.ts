@@ -1,4 +1,5 @@
 import joplin from 'api';
+import { MenuItemLocation } from 'api/types';
 import { NoteInterface, PaginationResult, PanelMessage, TagInterface } from 'src/interfaces';
 import { logger } from 'src/logging';
 import { autoTagNote, removeTags } from 'src/tags';
@@ -19,6 +20,7 @@ const batchState = {
 export async function setupPanel(): Promise<void> {
   logger.Info('Creating a panel for batch autotagging.');
   const panelHandle = await joplin.views.panels.create('batch-tag-panel');
+  await joplin.views.panels.show(panelHandle, false);
 
   logger.Info('Setting HTML and scripts/styles for the panel.');
   await joplin.views.panels.setHtml(panelHandle, getPanelTemplate());
@@ -28,12 +30,14 @@ export async function setupPanel(): Promise<void> {
   logger.Info('Registering show/hide-command for the panel.');
   await joplin.commands.register({
     name: 'showBatchTaggingPanel',
-    label: 'Show/Hide batch tagging view',
+    label: 'Show/Hide batch auto-tagging panel',
     execute: async () => {
       const isVisible = await joplin.views.panels.visible(panelHandle);
       await joplin.views.panels.show(panelHandle, !isVisible);
     },
   });
+
+  await joplin.views.menuItems.create('batch-autotagging-button', 'showBatchTaggingPanel', MenuItemLocation.Tools);
 
   logger.Info('Registering onMessage listener for the panel.');
   joplin.views.panels.onMessage(panelHandle, async (message: PanelMessage) => {
