@@ -134,6 +134,8 @@ const pluginConfig = Object.assign({}, baseConfig, {
   resolve: {
     alias: {
       api: path.resolve(__dirname, 'api'),
+      'src/tags': path.resolve(srcDir, 'tags'),
+      'src/logging': path.resolve(srcDir, 'logging'),
     },
     // JSON files can also be required from scripts so we include this.
     // https://github.com/joplin/plugin-bibtex/pull/2
@@ -217,6 +219,7 @@ const batchTaggingPanelConfig = Object.assign({}, baseConfig, {
   resolve: {
     alias: {
       api: path.resolve(__dirname, 'api'),
+      'src/logging': path.resolve(srcDir, 'logging'),
     },
     extensions: ['.tsx', '.ts', '.js', '.json'],
   },
