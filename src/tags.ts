@@ -17,10 +17,10 @@ export async function autoTagCurrentNote(): Promise<void> {
 /**
  * Scans given note and adds tags based on user specified keywords.
  */
-export async function autoTagNote(note: NoteInterface): Promise<void> {  
+export async function autoTagNote(note: NoteInterface): Promise<TagInterface[]> {  
   if (!note) {
     logger.Info('No note selected. Cancelling auto tagging.');
-    return;
+    return [];
   }
 
   logger.Info('Starting auto-tagging.');
@@ -33,13 +33,13 @@ export async function autoTagNote(note: NoteInterface): Promise<void> {
   
   if (!tagsToAdd.length) {
     logger.Info('No tags to add. Nothing to do.');
-    return;
+    return [];
   }
 
   const createMissingTags = await joplin.settings.value(SettingKeys.createMissingTags) as boolean;
   const tagObjs = await getActualTagObjects(tagsToAdd, createMissingTags);
   
-  await setTags(note.id, tagObjs);
+  return await setTags(note.id, tagObjs);
 }
 
 
@@ -50,9 +50,10 @@ export async function autoTagNote(note: NoteInterface): Promise<void> {
  */
 export async function getActualTagObjects(tagsArr: string[], createMissingTags: boolean): Promise<TagInterface[]> {
   const allTags = await getAllTags();
-  const newTags = tagsArr.filter((tag) => !!!allTags.find((atag) => tag === atag.title));
   
-  if (createMissingTags && newTags.length) {
+  if (createMissingTags) {
+    const newTags = tagsArr.filter((tag) => !!!allTags.find((atag) => tag === atag.title));
+
     logger.Info(`Creating ${newTags.length} new tags.`);
 
     for (const tag of newTags) {
@@ -138,13 +139,61 @@ export async function createTag(tag: string): Promise<TagInterface> {
  * 
  * @param noteId Target note id.
  * @param tags List of tags to insert.
+ * @returns Returns list of tags that were actually added to the note.
  */
-export async function setTags(noteId: string, tags: TagInterface[]): Promise<void> {  
+export async function setTags(noteId: string, tags: TagInterface[]): Promise<TagInterface[]> {  
   logger.Info(`Setting ${tags.length} tags to note ${noteId}.`);
+
+  const originalTags = await getNoteTags(noteId);
+  console.log('original tags:', originalTags);
+  const actuallyAddedTags = tags.filter(t1 => !originalTags.find(t2 => t2.id === t1.id ));
 
   for (let tag of tags) {
     await joplin.data.post(['tags', tag.id, 'notes'], null, { id: noteId });
-    logger.Info('Added tag:', tag.title);
+    logger.Info('Added tag: ' + tag.title);
+  }
+
+  logger.Info('Actually added tags:', actuallyAddedTags);
+  return actuallyAddedTags;
+}
+
+
+/**
+ * Gets all the tags attached to given note.
+ * @param noteId Target note id.
+ * @returns Returns list of tags.
+ */
+export async function getNoteTags(noteId: string): Promise<TagInterface[]> {
+  let paging: PaginationResult<TagInterface>;
+  let tags = [];
+  let page = 1;
+
+  do {
+    paging = await joplin.data.get(['notes', noteId, 'tags'], { 
+      fields: 'id, title',
+      limit: 100, 
+      page: page++,
+    });
+
+    tags = [...tags, ...paging.items];
+  } while (paging.has_more);
+
+  logger.Info('Note tags:', tags);
+  return tags;
+}
+
+
+/**
+ * Removes tags from the given note id.
+ * @param noteId Target note id.
+ * @param tags List of tags to remove.
+ */
+export async function removeTags(noteId: string, tags: TagInterface[]): Promise<void> {
+  logger.Info(`Removing ${tags.length} tags from note ${noteId}`);
+  
+  for (let tag of tags) {
+    await joplin.data.delete(['tags', tag.id, 'notes', noteId], null);
+    logger.Info('Removed tag:', tag.title);
   }
 }
 
@@ -159,20 +208,17 @@ export async function getAllTags(): Promise<TagInterface[]> {
 
   let allTags = [];
   let page = 1;
-  
-  while (true) {
-    const tagsInfo: PaginationResult<TagInterface> = await joplin.data.get(['tags'], { 
+  let tagsInfo: PaginationResult<TagInterface>;
+
+  do {
+    tagsInfo = await joplin.data.get(['tags'], { 
       fields: 'id, title', 
-      limit: 20, 
-      page: page++ 
+      limit: 100, 
+      page: page++,
     });
 
     allTags = [...allTags, ...tagsInfo.items];
-
-    if (!tagsInfo.has_more) {
-      break;
-    }
-  }
+  } while (tagsInfo.has_more);
 
   logger.Info(`Collected ${allTags.length} tags.`);
   return allTags;

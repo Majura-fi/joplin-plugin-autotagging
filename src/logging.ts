@@ -18,6 +18,10 @@ export class Logger {
     console.info('Debug enabled: ', val);
   }
 
+  public isEnabled(): boolean {
+    return this.debugEnabled;
+  }
+
   private emit(msgType: 'debug'|'info'|'warn'|'error', msg: any, extra: any[]): void {
     /* 
       Don't emit console messages if 

@@ -1,27 +1,31 @@
 import joplin from 'api';
-import { notesPaging, PanelMessage } from 'src/interfaces';
-import { autoTagNote } from 'src/tags';
+import { NoteInterface, PaginationResult, PanelMessage, TagInterface } from 'src/interfaces';
+import { logger } from 'src/logging';
+import { autoTagNote, removeTags } from 'src/tags';
 
-let notesCount = 0;
-let notesProcessedCount = 0;
-let completed = false;
-let cancelPending = false;
-let running = false;
+const batchState = {
+  notesCount: 0,
+  notesProcessedCount: 0,
+  completed: false,
+  cancelPending: false,
+  running: false,
+  updatedNotes: [],
+}
 
 
 /**
  * Setups panel.
  */
 export async function setupPanel(): Promise<void> {
-  console.info('Creating a panel for batch autotagging.');
+  logger.Info('Creating a panel for batch autotagging.');
   const panelHandle = await joplin.views.panels.create('batch-tag-panel');
 
-  console.info('Setting HTML and scripts/styles for the panel.');
+  logger.Info('Setting HTML and scripts/styles for the panel.');
   await joplin.views.panels.setHtml(panelHandle, getPanelTemplate());
   await joplin.views.panels.addScript(panelHandle, './panel-batch-tagging/panel.css');
   await joplin.views.panels.addScript(panelHandle, './panel-batch-tagging/panel.js');
 
-  console.info('Registering show/hide-command for the panel.');
+  logger.Info('Registering show/hide-command for the panel.');
   await joplin.commands.register({
     name: 'showBatchTaggingPanel',
     label: 'Show/Hide batch tagging view',
@@ -31,27 +35,46 @@ export async function setupPanel(): Promise<void> {
     },
   });
 
-  console.info('Registering onMessage listener for the panel.');
+  logger.Info('Registering onMessage listener for the panel.');
   joplin.views.panels.onMessage(panelHandle, async (message: PanelMessage) => {
     if (message.name === 'poll') {
       return {
-        progress: notesCount ? ((notesProcessedCount / notesCount) * 100) : 0,
-        completed,
+        progress: batchState.notesCount ? ((batchState.notesProcessedCount / batchState.notesCount) * 100) : 0,
+        completed: batchState.completed,
+        updatedNotes: batchState.updatedNotes,
       };
     }
 
     if (message.name === 'stop-auto-tagging') {
-      cancelPending = true;
+      batchState.cancelPending = true;
       return {};
     }
 
     if (message.name === 'start-auto-tagging') {
-      cancelPending = false;
+      batchState.cancelPending = false;
       doAutotagging();
       return {};
     }
 
-    console.info('Unknown message:', message);
+    if (message.name === 'logging-enabled') {
+      return logger.isEnabled();
+    }
+
+    if (message.name === 'open-note') {
+      logger.Info('Opening note with id', message.data);
+      joplin.commands.execute('openNote', message.data);
+      return {};
+    }
+
+    if (message.name === 'remove-tag-from-note') {
+      const tag = message.data.tag as TagInterface;
+      const note = message.data.note as NoteInterface;
+      logger.Info(`Removing "${tag.title}" tag from the post ${note.id}`);
+      removeTags(note.id, [tag]);
+      return {};
+    }
+
+    logger.Warn('Unknown message:', message);
     return {};
   });
 }
@@ -61,24 +84,25 @@ export async function setupPanel(): Promise<void> {
  * Processes all notes and autotags them and updates processed notes counter.
  */
 async function doAutotagging(): Promise<void> {
-  if (running) {
-    console.warn('Attempted to start another autotagging batch process!');
+  if (batchState.running) {
+    logger.Warn('Attempted to start another autotagging batch process!');
     return;
   }
 
   const startTime = new Date();
-  console.info('Started batch autotagging.', startTime.toLocaleString());
+  logger.Info('Started batch autotagging.', startTime.toLocaleString());
 
   let page = 1;
-  let notes: notesPaging = { has_more: false, items: [] };
-  completed = false;
+  let notes: PaginationResult<NoteInterface> = { has_more: false, items: [] };
+  batchState.completed = false;
 
-  notesCount = await countNotes();
-  notesProcessedCount = 0;
+  batchState.notesCount = await countNotes();
+  batchState.notesProcessedCount = 0;
+  const updatedNotes = [];
   
   do {
-    if (cancelPending) {
-      console.info('Cancel pending - Breaking the main loop.')
+    if (batchState.cancelPending) {
+      logger.Info('Cancel pending - Breaking the main loop.')
       break;
     }
 
@@ -90,26 +114,31 @@ async function doAutotagging(): Promise<void> {
     });
 
     for (let note of notes.items) {
-      if (cancelPending) {
-        console.info('Cancel pending - Breaking the inner loop.');
+      if (batchState.cancelPending) {
+        logger.Info('Cancel pending - Breaking the inner loop.');
         break;
       }
 
-      // await autoTagNote(note);
-      await sleep(2000);
-      notesProcessedCount += 1;
+      const addedTags = await autoTagNote(note);
+      
+      if (addedTags.length > 0) {
+        updatedNotes.push({ note, addedTags });
+      }
+
+      batchState.notesProcessedCount += 1;
     }
 
-    console.info(`Processed ${notesProcessedCount}/${notesCount} (${notesCount ? ((notesProcessedCount/notesCount) * 100) : 0}%)`);
+    logger.Info(`Processed ${batchState.notesProcessedCount}/${batchState.notesCount} (${batchState.notesCount ? ((batchState.notesProcessedCount/batchState.notesCount) * 100) : 0}%)`);
     page += 1;
   } while (notes.has_more);
 
-  completed = true;
-  running = false;
+  batchState.updatedNotes = updatedNotes;
+  batchState.running = false;
+  batchState.completed = true;
 
   const endingTime = new Date();
-  console.info('Completed batch autotagging.', endingTime.toLocaleString());
-  console.info(`Total time for ${notesCount} notes: ${(endingTime.getTime() - startTime.getTime()) / 1000} seconds`);
+  logger.Info('Completed batch autotagging.', endingTime.toLocaleString());
+  logger.Info(`Total time for ${batchState.notesCount} notes: ${(endingTime.getTime() - startTime.getTime()) / 1000} seconds`);
 }
 
 
@@ -129,7 +158,7 @@ function sleep(timeMS: number): Promise<void> {
  * @returns Returns count of notes.
  */
 async function countNotes(): Promise<number> {
-  let notes: notesPaging;
+  let notes: PaginationResult<NoteInterface>;
   let page = 1;
   let total = 0;
 
@@ -144,7 +173,7 @@ async function countNotes(): Promise<number> {
     page += 1;
   } while (notes.has_more);
 
-  console.info(`Counted total of ${total} notes`);
+  logger.Info(`Counted total of ${total} notes`);
   return total;
 }
 
@@ -156,14 +185,22 @@ async function countNotes(): Promise<number> {
 function getPanelTemplate(): string {
   return `
     <h1>Batch Tagging</h1>
-    <h2 id="processing-header" style="display: none;">Processing...</h2>
-
-    <button id="start">Autotag all notes</button>
-    <button id="stop" style="display: none;">Stop</button>
-
-    <div id="progress-bar-container" style="display: none;">
+    
+    <div class="container">
+      <button id="start">Autotag all notes</button>
+      <button id="stop" style="display: none;">Stop</button>
+      
+      <div id="progress-bar-container" style="display: none;">
       <span id="progress-value">0%</span>
       <div id="progress-bar"></div>
+      </div>
+
+      <h2 id="processing-header" style="display: none;">Processing...</h2>
+    </div>
+
+    <div id="results-container" style="display: none;">
+      <h2>Batch autotagging results</h2>
+      <div id="result-lists-container"></div>
     </div>
   `;
 }

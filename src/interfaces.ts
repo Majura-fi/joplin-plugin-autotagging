@@ -6,14 +6,15 @@ export interface notesQuery {
   page?: number;
 }
 
-export interface notesPaging {
-  items: any[];
-  has_more: boolean;
+export interface UpdatedNote {
+  note: NoteInterface;
+  addedTags: TagInterface[];
 }
 
 export interface PollReply {
   progress: number;
   completed: boolean;
+  updatedNotes: UpdatedNote[];
 }
 
 export interface PanelMessage {

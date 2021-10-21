@@ -2,6 +2,7 @@
   height: 1em;
   border: 1px solid #418249;
   border-radius: 0.5em; 
+  position: relative;
 }
 
 #progress-bar {
@@ -14,4 +15,47 @@
   position: absolute;
   text-align: center;
   width: 100%;
+}
+
+.tag:hover {
+  background: #e3eef5;
+  border: solid 1px #cfd9df;
+}
+
+.tag {
+  background: #d8e2e8;
+  border: solid 1px #b9c2c7;
+  padding: 4px 8px;
+  border-radius: 14px;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.note-link {
+  color: var(--joplin-url-color);
+  cursor: pointer;
+}
+
+.note-link:hover {
+  text-decoration: underline;
+}
+
+.result-list {
+  border-bottom: 1px solid #b5b5b5;
+  padding-bottom: 1em;
+  padding-top: 1em;
+  margin: 0;
+}
+
+.tag-list {
+  margin: 0;
+  padding: 0;
+}
+
+.tag-list li {
+  display: inline-block;
+}
+
+.run-counter {
+  margin: 1em 0 0 0;
 }
