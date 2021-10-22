@@ -188,23 +188,22 @@ async function countNotes(): Promise<number> {
  */
 function getPanelTemplate(): string {
   return `
-    <h1>Batch Tagging</h1>
-    
     <div class="container">
+      <h1>Batch Tagging</h1>
+    
       <button id="start">Autotag all notes</button>
       <button id="stop" style="display: none;">Stop</button>
       
       <div id="progress-bar-container" style="display: none;">
-      <span id="progress-value">0%</span>
-      <div id="progress-bar"></div>
+        <span id="progress-value">0%</span>
+        <div id="progress-bar"></div>
       </div>
-
       <h2 id="processing-header" style="display: none;">Processing...</h2>
-    </div>
-
-    <div id="results-container" style="display: none;">
-      <h2>Batch autotagging results</h2>
-      <div id="result-lists-container"></div>
+      
+      <div id="results-container" style="display: none;">
+        <h2>Batch autotagging results</h2>
+        <div id="result-lists-container"></div>
+      </div>
     </div>
   `;
 }
