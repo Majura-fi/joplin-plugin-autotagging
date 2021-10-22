@@ -1,3 +1,8 @@
+.container {
+  height: 100vh;
+  overflow-y: auto;
+}
+
 #progress-bar-container {
   height: 1em;
   border: 1px solid #418249;
@@ -15,16 +20,32 @@
   position: absolute;
   text-align: center;
   width: 100%;
+  color: white;
+  /* https://owumaro.github.io/text-stroke-generator/ */
+  text-shadow: 
+    rgb(65, 130, 73) 2px 0px 0px, 
+    rgb(65, 130, 73) 1.75517px 0.958851px 0px, 
+    rgb(65, 130, 73) 1.0806px 1.68294px 0px, 
+    rgb(65, 130, 73) 0.141474px 1.99499px 0px, 
+    rgb(65, 130, 73) -0.832294px 1.81859px 0px, 
+    rgb(65, 130, 73) -1.60229px 1.19694px 0px, 
+    rgb(65, 130, 73) -1.97999px 0.28224px 0px, 
+    rgb(65, 130, 73) -1.87291px -0.701566px 0px, 
+    rgb(65, 130, 73) -1.30729px -1.51361px 0px, 
+    rgb(65, 130, 73) -0.421592px -1.95506px 0px, 
+    rgb(65, 130, 73) 0.567324px -1.91785px 0px, 
+    rgb(65, 130, 73) 1.41734px -1.41108px 0px, 
+    rgb(65, 130, 73) 1.92034px -0.558831px 0px;
 }
 
 .tag:hover {
-  background: #e3eef5;
-  border: solid 1px #cfd9df;
+  background: var(--joplin-background-color-hover3);
+  border: solid 1px var(--joplin-raised-background-color);
 }
 
 .tag {
-  background: #d8e2e8;
-  border: solid 1px #b9c2c7;
+  background: var(--joplin-background-color3);
+  border: solid 1px var(--joplin-raised-background-color);
   padding: 4px 8px;
   border-radius: 14px;
   cursor: pointer;
